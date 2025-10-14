@@ -1,0 +1,25 @@
+# dploy.yaml
+# Ce fichier doit être à la racine de votre projet Git.
+
+# Définition de l'étape de construction (build) pour votre application React
+build:
+  - name: Installer les dépendances Node.js
+    command: npm install
+  - name: Construire l'application React
+    command: npm run build
+
+# Définition de l'étape de déploiement
+deploy:
+  - name: Nettoyer le répertoire public existant (optionnel, mais recommandé pour un déploiement propre)
+    command: rm -rf {{target_path}}/*
+  - name: Copier les fichiers de build de React vers le répertoire public
+    command: cp -r dist/* {{target_path}}/
+  - name: Copier le fichier proxy.php vers le répertoire public
+    command: cp proxy.php {{target_path}}/proxy.php
+  # Optionnel : Si vous avez d'autres fichiers PHP ou des assets à copier, ajoutez-les ici.
+  # - name: Copier d'autres fichiers PHP
+  #   command: cp -r path/to/your/other/php/files/* {{target_path}}/
+  # Optionnel : Redémarrer PHP-FPM si nécessaire. CloudPanel gère souvent cela automatiquement
+  # pour les changements PHP, mais vous pouvez l'ajouter si vous rencontrez des problèmes.
+  # - name: Redémarrer PHP-FPM
+  #   command: sudo systemctl restart php8.2-fpm # Ajustez la version de PHP si nécessaire (ex: php8.1-fpm)
