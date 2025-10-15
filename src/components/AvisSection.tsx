@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Star, Quote } from 'lucide-react';
+import { Star, Quote, Play, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const reviews = [
   {
@@ -25,12 +26,29 @@ const reviews = [
   },
 ];
 
+const videoTestimonials = [
+    {
+        name: "Marie et Pierre L.",
+        location: "Maison 85m² - Lyon",
+        quote: "Grâce aux aides, nous avons économisé 3200€ sur notre installation multisplit. Le simulateur était ultra-précis !",
+        rating: 5,
+        color: "blue",
+    },
+    {
+        name: "Sophie M.",
+        location: "Appartement 45m² - Paris",
+        quote: "Installation effectuée en 1 journée seulement. L'équipe était professionnelle et le résultat parfait.",
+        rating: 4.5,
+        color: "green",
+    },
+];
+
 const StarRating = ({ rating }: { rating: number }) => (
   <div className="flex items-center mb-3">
     {[...Array(5)].map((_, i) => (
       <Star
         key={i}
-        className={`h-5 w-5 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+        className={`h-5 w-5 ${i < rating ? 'text-yellow-400 fill-yellow-400' : i < rating + 0.5 ? 'text-yellow-400 fill-yellow-400/50' : 'text-gray-300'}`}
       />
     ))}
   </div>
@@ -49,9 +67,40 @@ const AvisSection = () => {
           </p>
         </div>
         
+        {/* Témoignages Vidéo (Fictifs) */}
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {videoTestimonials.map((testimonial, index) => (
+                <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden dark:bg-gray-800">
+                    <div className={`aspect-video bg-gray-200 relative`}>
+                        {/* Placeholder pour la vidéo */}
+                        <div className={`absolute inset-0 bg-gradient-to-r from-${testimonial.color}-600 to-purple-600 flex items-center justify-center cursor-pointer`}>
+                            <Play className="text-white h-12 w-12" />
+                        </div>
+                        <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                            <Play className="inline h-3 w-3 mr-1" /> Voir le témoignage
+                        </div>
+                    </div>
+                    <div className="p-6">
+                        <div className="flex items-center mb-4">
+                            <div className={`w-12 h-12 bg-${testimonial.color}-100 rounded-full flex items-center justify-center mr-4 dark:bg-${testimonial.color}-900`}>
+                                <User className={`text-${testimonial.color}-600`} />
+                            </div>
+                            <div>
+                                <div className="font-semibold text-gray-800 dark:text-white">{testimonial.name}</div>
+                                <div className="text-sm text-gray-500">{testimonial.location}</div>
+                            </div>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300">{testimonial.quote}</p>
+                        <StarRating rating={testimonial.rating} />
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        {/* Avis Textuels */}
         <div className="grid gap-8 md:grid-cols-3">
           {reviews.map((review, index) => (
-            <Card key={index} className="p-6 shadow-xl border-t-4 border-blue-500 relative overflow-hidden">
+            <Card key={index} className="p-6 shadow-xl border-t-4 border-blue-500 relative overflow-hidden dark:bg-gray-800">
               <Quote className="absolute top-4 right-4 h-8 w-8 text-blue-100 dark:text-blue-900/50" />
               <CardContent className="p-0">
                 <StarRating rating={review.rating} />

@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, CheckCircle, Lock, Clock, UserCheck, Bolt } from 'lucide-react';
+import { ShieldCheck, CheckCircle, Lock, Clock, UserCheck, Bolt, Snowflake, Euro, Star } from 'lucide-react';
 
 interface HeroSectionProps {
   scrollToSection: (id: string) => void;
@@ -29,7 +29,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ scrollToSection }) => {
         updateCounter();
       });
     };
-    animateCounters();
+    // Delay animation slightly to ensure elements are mounted
+    const timer = setTimeout(animateCounters, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -58,7 +60,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ scrollToSection }) => {
               <div className="text-sm text-blue-200">Devis calculés</div>
             </div>
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="text-2xl md:text-3xl font-bold text-yellow-300">4.8★</div>
+              <div className="text-2xl md:text-3xl font-bold text-yellow-300">4.8<Star className="inline h-5 w-5 fill-yellow-300 text-yellow-300 mb-1 ml-1" /></div>
               <div className="text-sm text-blue-200">Note moyenne</div>
             </div>
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">

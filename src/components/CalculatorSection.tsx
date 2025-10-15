@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck, PiggyBank, Gift, University, Download, Send } from 'lucide-react';
-import { toast } from 'sonner'; // Using sonner for toasts
+import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck, PiggyBank, Gift, University, Download, Send, CheckCircle, Percentage } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Mapping des départements pour affichage lisible
 const departementsMapping: { [key: string]: string } = {
@@ -42,6 +42,15 @@ const REVENU_TIERS = {
     INTERMEDIAIRE: 3, // Violet
     AISÉ: 4,         // Rose
     NON_ELIGIBLE: 5
+};
+
+// Plafonds de revenus 2025 pour MaPrimeRénov' (valeurs indicatives)
+const INCOME_THRESHOLDS = {
+    1: { veryModest: 15677, modest: 21093, intermediate: 40000 },
+    2: { veryModest: 22960, modest: 30914, intermediate: 60000 },
+    3: { veryModest: 27579, modest: 37121, intermediate: 80000 },
+    4: { veryModest: 32206, modest: 43337, intermediate: 100000 },
+    5: { veryModest: 36851, modest: 49569, intermediate: 120000 }
 };
 
 interface CalculatorSectionProps {
@@ -133,29 +142,23 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
   const previousStep = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      setCalculationData(null); // Clear results when going back
     }
   };
 
   const updateProgress = () => {
-    // Progress is based on completed steps (1/3, 2/3, 3/3)
     const progressPercentage = ((currentStep - 1) / 2) * 100;
     return progressPercentage;
   };
 
   const getRevenuTier = (income: number, size: number): number => {
-    // Simplified thresholds for MaPrimeRénov' based on household size (illustrative)
-    if (size === 1) {
-        if (income <= 15000) return REVENU_TIERS.TRES_MODESTE;
-        if (income <= 25000) return REVENU_TIERS.MODESTE;
-        if (income <= 40000) return REVENU_TIERS.INTERMEDIAIRE;
-        if (income > 40000) return REVENU_TIERS.AISÉ;
-    }
-    if (size >= 2) {
-        if (income <= 25000) return REVENU_TIERS.TRES_MODESTE;
-        if (income <= 40000) return REVENU_TIERS.MODESTE;
-        if (income <= 60000) return REVENU_TIERS.INTERMEDIAIRE;
-        if (income > 60000) return REVENU_TIERS.AISÉ;
-    }
+    const thresholds = INCOME_THRESHOLDS[size] || INCOME_THRESHOLDS[5];
+    
+    if (income <= thresholds.veryModest) return REVENU_TIERS.TRES_MODESTE;
+    if (income <= thresholds.modest) return REVENU_TIERS.MODESTE;
+    if (income <= thresholds.intermediate) return REVENU_TIERS.INTERMEDIAIRE;
+    if (income > thresholds.intermediate) return REVENU_TIERS.AISÉ;
+    
     return REVENU_TIERS.NON_ELIGIBLE;
   };
 
@@ -164,104 +167,103 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
     const parsedIncome = typeof income === 'number' ? income : parseInt(income as string);
     const parsedHouseholdSize = parseInt(householdSize);
 
+    let basePrice = 0;
     let equipmentCost = 0;
     let installationCost = 0;
     let optionsCost = 0;
     let baseTVA = 0.20; // Default 20% TVA
 
-    // 1. Base costs based on installation type and surface
-    switch (selectedInstallationType) {
-      case 'monosplit':
-        equipmentCost = 1200 + (parsedSurface * 18); 
-        installationCost = 900;
-        break;
-      case 'multisplit':
-        equipmentCost = 2500 + (parsedSurface * 28);
-        installationCost = 1500;
-        break;
-      case 'gainable':
-        equipmentCost = 4000 + (parsedSurface * 40);
-        installationCost = 2200;
-        break;
-      default:
-        equipmentCost = 0;
-        installationCost = 0;
-    }
-
-    // Adjust costs based on rooms (simplified)
-    if (parseInt(rooms) > 1 && selectedInstallationType === 'monosplit') {
-      equipmentCost += (parseInt(rooms) - 1) * 400; 
-    }
-
-    // 2. Options cost
-    if (reversible) optionsCost += 300;
-    if (wifi) optionsCost += 150;
-    if (inverter) optionsCost += 0; // Assuming Inverter is standard, no extra cost
+    // 1. Base costs based on installation type and surface (using logic from static code)
+    const roomsCount = parseInt(rooms);
     
-    // 3. Insulation impact (better insulation reduces required power/cost)
+    switch(selectedInstallationType) {
+        case 'monosplit':
+            basePrice = 1290;
+            equipmentCost = 800;
+            installationCost = 490;
+            break;
+        case 'multisplit':
+            basePrice = 2490 + (roomsCount - 2) * 500;
+            equipmentCost = 1800 + (roomsCount - 2) * 400;
+            installationCost = 690;
+            break;
+        case 'gainable':
+            basePrice = 3990 + (roomsCount - 2) * 600;
+            equipmentCost = 2800 + (roomsCount - 2) * 500;
+            installationCost = 1190;
+            break;
+        default:
+            basePrice = 0;
+            equipmentCost = 0;
+            installationCost = 0;
+    }
+    
+    // Ajustement selon la surface (simplifié)
+    const surfaceMultiplier = 1 + Math.max(0, (parsedSurface - 50) * 0.01);
+    basePrice = basePrice * surfaceMultiplier;
+    equipmentCost = equipmentCost * surfaceMultiplier;
+    
+    // Options supplémentaires
+    if (reversible) optionsCost += 400;
+    if (wifi) optionsCost += 150;
+    if (inverter) optionsCost += 200;
+    
+    // Ajustement selon l'isolation (impact sur la puissance requise)
     switch (insulation) {
-      case 'excellente': equipmentCost *= 0.85; break;
-      case 'bonne': equipmentCost *= 0.95; break;
-      case 'moyenne': equipmentCost *= 1.0; break;
-      case 'faible': equipmentCost *= 1.15; break;
+      case 'excellente': basePrice *= 0.9; break;
+      case 'bonne': basePrice *= 0.95; break;
+      case 'moyenne': basePrice *= 1.0; break;
+      case 'faible': basePrice *= 1.1; break;
     }
 
-    // 4. Construction year impact (older homes might need more complex installation)
-    if (constructionYear === 'ancien') installationCost *= 1.15;
+    const totalCostHT = basePrice + optionsCost;
 
-    const totalCostHT = equipmentCost + installationCost + optionsCost;
-
-    // 5. Aides calculation (MaPrimeRénov', CEE, TVA)
+    // 2. Aides calculation
     let maprimeRenov = 0;
     let primeCEE = 0;
     let eligibleEcoPTZ = false;
     let revenuTier = getRevenuTier(parsedIncome, parsedHouseholdSize);
-
-    // MaPrimeRénov' (MPR) - Only for reversible AC (Heat Pump) and RGE installation in older homes
+    
+    // TVA réduite 10% (si RGE et logement > 2 ans)
+    if (installation && houseAge === 'plus15') {
+      baseTVA = 0.10;
+    }
+    const vatAmount = totalCostHT * baseTVA;
+    const totalTTC = totalCostHT + vatAmount;
+    
+    // MaPrimeRénov' (MPR) - Seulement pour réversible et RGE
     if (houseAge === 'plus15' && installation && reversible) {
-        switch (revenuTier) {
-            case REVENU_TIERS.TRES_MODESTE:
-                maprimeRenov = 2500; // Max aid for specific equipment
-                break;
-            case REVENU_TIERS.MODESTE:
-                maprimeRenov = 1800;
-                break;
-            case REVENU_TIERS.INTERMEDIAIRE:
-                maprimeRenov = 1000;
-                break;
-            case REVENU_TIERS.AISÉ:
-                maprimeRenov = 0; // Not eligible for MPR
-                break;
+        const thresholds = INCOME_THRESHOLDS[parsedHouseholdSize] || INCOME_THRESHOLDS[5];
+        
+        if (parsedIncome <= thresholds.veryModest) {
+            maprimeRenov = Math.min(4000, totalTTC * 0.75);
+        } else if (parsedIncome <= thresholds.modest) {
+            maprimeRenov = Math.min(3000, totalTTC * 0.6);
+        } else if (parsedIncome <= thresholds.intermediate) {
+            maprimeRenov = Math.min(2000, totalTTC * 0.4);
+        } else {
+            maprimeRenov = 0; // Aisé
         }
-        // MPR cannot exceed 90% of the cost (simplified cap)
-        maprimeRenov = Math.min(maprimeRenov, totalCostHT * 0.4);
     }
 
-    // Prime CEE (Certificats d'Économie d'Énergie) - Requires RGE and reversible
+    // Prime CEE - Requiert RGE et réversible
     if (installation && reversible) {
-        // CEE amount depends on region and income (simplified)
-        let baseCEE = parsedSurface * 5; // Base CEE per m²
+        let baseCEE = parsedSurface * 5;
         if (revenuTier <= REVENU_TIERS.MODESTE) {
-            primeCEE = Math.min(baseCEE * 2, 800); // Higher cap for low income
+            primeCEE = Math.min(baseCEE * 2, 800);
         } else {
             primeCEE = Math.min(baseCEE, 400);
         }
     }
 
-    // TVA réduite 10%
-    if (installation && houseAge === 'plus15') {
-      baseTVA = 0.10;
-    }
-
-    // Eco-PTZ eligibility
-    if (houseAge === 'plus15' && propertyStatus === 'residence_principale' && ownerType === 'occupant') {
+    // Eco-PTZ eligibility (Logement > 15 ans, résidence principale, propriétaire)
+    if (houseAge === 'plus15' && propertyStatus === 'residence_principale' && (ownerType === 'occupant' || ownerType === 'bailleur')) {
       eligibleEcoPTZ = true;
     }
+    const ecoPTZAmount = eligibleEcoPTZ ? Math.min(15000, totalTTC * 0.7) : 0;
 
-    const vatAmount = totalCostHT * baseTVA;
-    const totalTTC = totalCostHT + vatAmount;
     const totalAides = maprimeRenov + primeCEE;
-    const finalCost = totalTTC - totalAides;
+    const finalCost = Math.max(0, totalTTC - totalAides);
     const savings = totalAides;
 
     setCalculationData({
@@ -274,7 +276,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
       maprime: Math.round(maprimeRenov),
       cee: Math.round(primeCEE),
       tvaReduced: baseTVA === 0.10 ? Math.round(vatAmount) : 0, 
-      ecoPTZ: eligibleEcoPTZ ? 15000 : 0, 
+      ecoPTZ: Math.round(ecoPTZAmount), 
       totalAides: Math.round(totalAides),
       finalCost: Math.round(finalCost),
       savings: Math.round(savings),
@@ -296,8 +298,13 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
         default: return "Non éligible aux aides directes";
     }
   };
+  
+  const handleTypeSelection = (type: string) => {
+    setSelectedInstallationType(type);
+  };
 
   return (
+    <>
     <section id="calculateur" className="py-16 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-4">
@@ -369,7 +376,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Monosplit amélioré */}
                 <div
                   className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 relative overflow-hidden group ${selectedInstallationType === 'monosplit' ? 'type-selected border-blue-500 ring-4 ring-blue-200' : 'border-gray-200'}`}
-                  onClick={() => setSelectedInstallationType('monosplit')}
+                  onClick={() => handleTypeSelection('monosplit')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
                   <div className="text-center relative z-10">
@@ -394,7 +401,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Multisplit amélioré */}
                 <div
                   className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-green-50/30 relative overflow-hidden group ${selectedInstallationType === 'multisplit' ? 'type-selected border-blue-500 ring-4 ring-blue-200' : 'border-gray-200'}`}
-                  onClick={() => setSelectedInstallationType('multisplit')}
+                  onClick={() => handleTypeSelection('multisplit')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
                   <div className="text-center relative z-10">
@@ -415,7 +422,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Gainable amélioré */}
                 <div
                   className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50/30 relative overflow-hidden group ${selectedInstallationType === 'gainable' ? 'type-selected border-blue-500 ring-4 ring-blue-200' : 'border-gray-200'}`}
-                  onClick={() => setSelectedInstallationType('gainable')}
+                  onClick={() => handleTypeSelection('gainable')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-purple-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
                   <div className="text-center relative z-10">
@@ -660,8 +667,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               </div>
 
               {/* Informations propriétaire pour éco-PTZ */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-                <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6 dark:bg-blue-900/30 dark:border-blue-800">
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-3 flex items-center">
                   <Info className="mr-2 h-5 w-5" />
                   Informations pour l'éco-PTZ
                 </h3>
@@ -680,7 +687,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   </div>
                   <div>
                     <Label htmlFor="ownerType" className="mb-2">Type de propriétaire</Label>
-                    <Select value={ownerType} onValueChange={setOwnerType}>
+                    <Select value={ownerType} onValueChange={setPropertyStatus}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionnez le type de propriétaire" />
                       </SelectTrigger>
@@ -702,7 +709,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
           )}
 
           {/* Navigation entre étapes améliorée */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <Button
               onClick={previousStep}
               className={`bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-400 transition duration-300 flex items-center ${currentStep === 1 ? 'invisible' : ''}`}
@@ -713,200 +720,202 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               <div className="text-sm text-gray-500">Étape {currentStep} sur 3</div>
             </div>
             <Button
-              onClick={nextStep}
-              className={`bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 ml-auto flex items-center group ${currentStep === 3 ? 'invisible' : ''}`}
+              onClick={currentStep === 3 ? calculateEstimate : nextStep}
+              className={`bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 ml-auto flex items-center group`}
             >
-              <span>Suivant</span>
-              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-300 h-5 w-5" />
+              <span>{currentStep === 3 ? 'Calculer mon devis' : 'Suivant'}</span>
+              {currentStep !== 3 && <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-300 h-5 w-5" />}
+              {currentStep === 3 && <Calculator className="ml-2 h-5 w-5" />}
             </Button>
           </div>
         </Card>
+      </div>
+    </section>
 
-        {/* Section résultats améliorée avec comparaison */}
-        {calculationData && (
-          <div id="results" className="py-16 bg-white result-animation">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">Votre estimation personnalisée</h2>
-                <p className="text-xl text-gray-600">Basée sur vos informations et les dernières aides 2025</p>
-              </div>
-              
-              {/* Indicateur de revenu */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8 text-center">
-                <p className="text-yellow-800 font-semibold">
-                    Votre foyer est classé dans le profil de revenu : <span className="font-bold">{getRevenuTierLabel(calculationData.revenuTier)}</span>.
-                </p>
-              </div>
+    {/* Section résultats améliorée avec comparaison */}
+    {calculationData && (
+      <div id="results" className="py-16 bg-white result-animation">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Votre estimation personnalisée</h2>
+            <p className="text-xl text-gray-600">Basée sur vos informations et les dernières aides 2025</p>
+          </div>
+          
+          {/* Indicateur de revenu */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8 text-center">
+            <p className="text-yellow-800 font-semibold">
+                Votre foyer est classé dans le profil de revenu : <span className="font-bold">{getRevenuTierLabel(calculationData.revenuTier)}</span>.
+            </p>
+          </div>
 
-              {/* Comparaison avant/après aides */}
-              <div className="grid md:grid-cols-2 gap-8 mb-12">
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-                  <h3 className="text-2xl font-bold text-red-800 mb-4">
-                    <Euro className="inline-block mr-2 h-6 w-6" />Prix TTC sans aides
-                  </h3>
-                  <div className="text-4xl font-bold text-red-900 mb-2 line-through">{calculationData.totalTTC}€</div>
-                  <p className="text-red-700">Coût total avant déduction des primes</p>
-                </div>
-                
-                <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
-                  <h3 className="text-2xl font-bold text-green-800 mb-4">
-                    <PiggyBank className="inline-block mr-2 h-6 w-6" />Coût final estimé
-                  </h3>
-                  <div className="text-5xl font-bold text-green-900 mb-2">{calculationData.finalCost}€</div>
-                  <p className="text-green-700">Après déduction des aides directes</p>
-                </div>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-8">
-                {/* Coût d'installation amélioré */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 border border-blue-200">
-                  <h3 className="text-2xl font-bold text-blue-800 mb-6 flex items-center">
-                    <Euro className="mr-2 h-6 w-6" />Détail du coût d'installation
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                            Équipement (HT)
-                            <span className="tooltip ml-1 relative group">
-                                <Info className="h-4 w-4 text-blue-500 cursor-help" />
-                                <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
-                                    Prix des unités intérieures et extérieures, télécommande
-                                </span>
+          {/* Comparaison avant/après aides */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+              <h3 className="text-2xl font-bold text-red-800 mb-4">
+                <Euro className="inline-block mr-2 h-6 w-6" />Prix TTC sans aides
+              </h3>
+              <div className="text-4xl font-bold text-red-900 mb-2 line-through">{calculationData.totalTTC}€</div>
+              <p className="text-red-700">Coût total avant déduction des primes</p>
+            </div>
+            
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
+              <h3 className="text-2xl font-bold text-green-800 mb-4">
+                <PiggyBank className="inline-block mr-2 h-6 w-6" />Coût final estimé
+              </h3>
+              <div className="text-5xl font-bold text-green-900 mb-2">{calculationData.finalCost}€</div>
+              <p className="text-green-700">Après déduction des aides directes</p>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Coût d'installation amélioré */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 border border-blue-200">
+              <h3 className="text-2xl font-bold text-blue-800 mb-6 flex items-center">
+                <Euro className="mr-2 h-6 w-6" />Détail du coût d'installation
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <span className="flex items-center">
+                        Équipement (HT)
+                        <span className="tooltip ml-1 relative group">
+                            <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                            <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
+                                Prix des unités intérieures et extérieures, télécommande
                             </span>
                         </span>
-                        <span className="font-semibold text-lg">{calculationData.equipmentCost}€</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                            Installation RGE (HT)
-                            <span className="tooltip ml-1 relative group">
-                                <Info className="h-4 w-4 text-blue-500 cursor-help" />
-                                <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
-                                    Main d'œuvre professionnelle RGE, mise en service
-                                </span>
+                    </span>
+                    <span className="font-semibold text-lg">{calculationData.equipmentCost}€</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="flex items-center">
+                        Installation RGE (HT)
+                        <span className="tooltip ml-1 relative group">
+                            <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                            <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
+                                Main d'œuvre professionnelle RGE, mise en service
                             </span>
                         </span>
-                        <span className="font-semibold text-lg">{calculationData.installationCost}€</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                            Options (HT)
-                        </span>
-                        <span className="font-semibold text-lg">{calculationData.optionsCost}€</span>
-                    </div>
-                    <hr className="border-blue-200 my-4" />
-                    <div className="flex justify-between text-xl font-bold text-blue-800">
-                        <span>Total HT:</span>
-                        <span>{calculationData.totalCost}€</span>
-                    </div>
-                    <div className="flex justify-between text-lg text-blue-700">
-                        <span>TVA appliquée ({calculationData.baseTVA * 100}%):</span>
-                        <span>{calculationData.vatCost}€</span>
-                    </div>
-                    <div className="flex justify-between text-2xl font-bold text-blue-900 bg-white rounded-lg p-4 mt-4 border border-blue-200">
-                        <span>Total TTC:</span>
-                        <span>{calculationData.totalTTC}€</span>
-                    </div>
-                  </div>
+                    </span>
+                    <span className="font-semibold text-lg">{calculationData.installationCost}€</span>
                 </div>
-
-                {/* Aides disponibles améliorées */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8 border border-green-200">
-                  <h3 className="text-2xl font-bold text-green-800 mb-6 flex items-center">
-                    <Gift className="inline-block mr-2 h-6 w-6" />Détail des aides disponibles
-                  </h3>
-                  <div id="aidesDetails" className="space-y-4">
-                    {calculationData.maprime > 0 && (
-                      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500">
-                        <span className="flex items-center font-medium">
-                          MaPrimeRénov'
-                        </span>
-                        <span className="font-bold text-green-600">+{calculationData.maprime}€</span>
-                      </div>
-                    )}
-                    {calculationData.cee > 0 && (
-                      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-green-500">
-                        <span className="flex items-center font-medium">
-                          Prime CEE (Certificats d'Économie d'Énergie)
-                        </span>
-                        <span className="font-bold text-green-600">+{calculationData.cee}€</span>
-                      </div>
-                    )}
-                    {calculationData.tvaReduced > 0 && (
-                      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-purple-500">
-                        <span className="flex items-center font-medium">
-                          Avantage TVA réduite (10%)
-                        </span>
-                        <span className="font-bold text-green-600">Inclus dans le coût TTC</span>
-                      </div>
-                    )}
-                    {calculationData.maprime === 0 && calculationData.cee === 0 && (
-                      <p className="text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
-                        Selon votre profil de revenu, vous n'êtes pas éligible aux aides directes pour ce type d'équipement. Vous bénéficiez cependant de la TVA réduite à 10% si votre logement a plus de 2 ans.
-                      </p>
-                    )}
-                  </div>
-                  <hr className="border-green-200 my-6" />
-                  <div className="flex justify-between text-2xl font-bold text-green-900 bg-white rounded-lg p-4 border border-green-200">
-                    <span>Total des aides directes:</span>
-                    <span>{calculationData.totalAides}€</span>
-                  </div>
+                <div className="flex justify-between items-center">
+                    <span className="flex items-center">
+                        Options (HT)
+                    </span>
+                    <span className="font-semibold text-lg">{calculationData.optionsCost}€</span>
+                </div>
+                <hr className="border-blue-200 my-4" />
+                <div className="flex justify-between text-xl font-bold text-blue-800">
+                    <span>Total HT:</span>
+                    <span>{calculationData.totalCost}€</span>
+                </div>
+                <div className="flex justify-between text-lg text-blue-700">
+                    <span>TVA appliquée ({calculationData.baseTVA * 100}%):</span>
+                    <span>{calculationData.vatCost}€</span>
+                </div>
+                <div className="flex justify-between text-2xl font-bold text-blue-900 bg-white rounded-lg p-4 mt-4 border border-blue-200">
+                    <span>Total TTC:</span>
+                    <span>{calculationData.totalTTC}€</span>
                 </div>
               </div>
+            </div>
 
-              {/* Prêts disponibles */}
-              {calculationData.eligibleEcoPTZ && calculationData.ecoPTZ > 0 && (
-                <div id="pretsSection" className="mt-8 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 border border-orange-200">
-                  <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center">
-                    <University className="inline-block mr-2 h-6 w-6" />Solutions de financement
-                  </h3>
-                  <div id="pretsDetails" className="space-y-4">
-                    <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-orange-500">
-                      <span className="flex items-center font-medium">
-                        Éco-PTZ (prêt à taux 0%)
-                      </span>
-                      <span className="font-bold text-orange-600">Jusqu'à {calculationData.ecoPTZ}€</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                        Éligibilité confirmée : Logement de plus de 15 ans, résidence principale.
-                    </p>
+            {/* Aides disponibles améliorées */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8 border border-green-200">
+              <h3 className="text-2xl font-bold text-green-800 mb-6 flex items-center">
+                <Gift className="inline-block mr-2 h-6 w-6" />Détail des aides disponibles
+              </h3>
+              <div id="aidesDetails" className="space-y-4">
+                {calculationData.maprime > 0 && (
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500">
+                    <span className="flex items-center font-medium">
+                      MaPrimeRénov'
+                    </span>
+                    <span className="font-bold text-green-600">+{calculationData.maprime}€</span>
                   </div>
-                </div>
-              )}
-
-              {/* Coût final amélioré */}
-              <div className="mt-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl p-8 text-center relative overflow-hidden">
-                {/* Éléments décoratifs */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-                
-                <h3 className="text-3xl font-bold mb-6 relative z-10">Votre investissement final</h3>
-                <div className="text-6xl font-bold mb-4 relative z-10">{calculationData.finalCost}€</div>
-                <p className="text-xl opacity-90 mb-6 relative z-10">Soit une économie totale de <span className="font-bold text-yellow-300">{calculationData.savings}€</span> (aides directes)</p>
-                
-                {/* Économies visualisées */}
-                <div className="max-w-md mx-auto bg-white/20 rounded-full h-4 mb-6 relative z-10">
-                    <div id="savings-bar" className="bg-yellow-400 h-4 rounded-full progress-bar" style={{ width: `${Math.min(100, (calculationData.savings / calculationData.totalTTC) * 100)}%` }}></div>
-                </div>
-                
-                {/* CTA Final */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 relative z-10">
-                    <Button onClick={() => scrollToSection('contact')} className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <Send className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
-                    </Button>
-                    <Button onClick={() => toast.info('La génération de PDF est en cours de développement.')} className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition duration-300 flex items-center justify-center">
-                        <Download className="inline-block mr-2 h-5 w-5" />Télécharger cette estimation
-                    </Button>
-                </div>
-                <p className="text-sm mt-4 opacity-75 relative z-10">
-                    <ShieldCheck className="inline-block mr-1 h-4 w-4" />Un expert vous contactera sous 24h - Sans engagement
-                </p>
+                )}
+                {calculationData.cee > 0 && (
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-green-500">
+                    <span className="flex items-center font-medium">
+                      Prime CEE (Certificats d'Économie d'Énergie)
+                    </span>
+                    <span className="font-bold text-green-600">+{calculationData.cee}€</span>
+                  </div>
+                )}
+                {calculationData.tvaReduced > 0 && (
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-purple-500">
+                    <span className="flex items-center font-medium">
+                      Avantage TVA réduite (10%)
+                    </span>
+                    <span className="font-bold text-green-600">Inclus dans le coût TTC</span>
+                  </div>
+                )}
+                {calculationData.maprime === 0 && calculationData.cee === 0 && (
+                  <p className="text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
+                    Selon votre profil de revenu, vous n'êtes pas éligible aux aides directes pour ce type d'équipement. Vous bénéficiez cependant de la TVA réduite à 10% si votre logement a plus de 2 ans.
+                  </p>
+                )}
+              </div>
+              <hr className="border-green-200 my-6" />
+              <div className="flex justify-between text-2xl font-bold text-green-900 bg-white rounded-lg p-4 border border-green-200">
+                <span>Total des aides directes:</span>
+                <span>{calculationData.totalAides}€</span>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Prêts disponibles */}
+          {calculationData.eligibleEcoPTZ && calculationData.ecoPTZ > 0 && (
+            <div id="pretsSection" className="mt-8 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 border border-orange-200">
+              <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center">
+                <University className="inline-block mr-2 h-6 w-6" />Solutions de financement
+              </h3>
+              <div id="pretsDetails" className="space-y-4">
+                <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-orange-500">
+                  <span className="flex items-center font-medium">
+                    Éco-PTZ (prêt à taux 0%)
+                  </span>
+                  <span className="font-bold text-orange-600">Jusqu'à {calculationData.ecoPTZ}€</span>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                    Éligibilité confirmée : Logement de plus de 15 ans, résidence principale.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Coût final amélioré */}
+          <div className="mt-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl p-8 text-center relative overflow-hidden">
+            {/* Éléments décoratifs */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+            
+            <h3 className="text-3xl font-bold mb-6 relative z-10">Votre investissement final</h3>
+            <div className="text-6xl font-bold mb-4 relative z-10">{calculationData.finalCost}€</div>
+            <p className="text-xl opacity-90 mb-6 relative z-10">Soit une économie totale de <span className="font-bold text-yellow-300">{calculationData.savings}€</span> (aides directes)</p>
+            
+            {/* Économies visualisées */}
+            <div className="max-w-md mx-auto bg-white/20 rounded-full h-4 mb-6 relative z-10">
+                <div id="savings-bar" className="bg-yellow-400 h-4 rounded-full progress-bar" style={{ width: `${Math.min(100, (calculationData.savings / calculationData.totalTTC) * 100)}%` }}></div>
+            </div>
+            
+            {/* CTA Final */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 relative z-10">
+                <Button onClick={() => scrollToSection('contact')} className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition duration-300 transform hover:scale-105 flex items-center justify-center">
+                    <Send className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
+                </Button>
+                <Button onClick={() => toast.info('La génération de PDF est en cours de développement.')} className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition duration-300 flex items-center justify-center">
+                    <Download className="inline-block mr-2 h-5 w-5" />Télécharger cette estimation
+                </Button>
+            </div>
+            <p className="text-sm mt-4 opacity-75 relative z-10">
+                <ShieldCheck className="inline-block mr-1 h-4 w-4" />Un expert vous contactera sous 24h - Sans engagement
+            </p>
+          </div>
+        </div>
       </div>
-    </section>
+    )}
+    </>
   );
 };
 

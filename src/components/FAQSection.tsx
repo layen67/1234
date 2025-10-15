@@ -11,8 +11,8 @@ const faqData = [
     value: "item-1",
   },
   {
-    question: "Suis-je éligible aux aides de l'État (MaPrimeRénov', CEE) ?",
-    answer: "L'éligibilité dépend principalement de votre revenu fiscal de référence, de la nature de votre logement (résidence principale de plus de 15 ans) et du fait que l'installation soit réalisée par un professionnel RGE (Reconnu Garant de l'Environnement). Notre simulateur intègre ces critères pour vous donner une première estimation.",
+    question: "Les aides sont-elles cumulables ?",
+    answer: "Oui, la plupart des aides sont cumulables : MaPrimeRénov' + Prime CEE + TVA réduite. L'Éco-PTZ peut également être combiné avec les autres aides pour financer le reste à charge.",
     value: "item-2",
   },
   {
@@ -21,9 +21,14 @@ const faqData = [
     value: "item-3",
   },
   {
-    question: "Qu'est-ce qu'un climatiseur Inverter ?",
-    answer: "La technologie Inverter permet au compresseur de moduler sa puissance en continu, au lieu de s'arrêter et de redémarrer constamment. Cela assure une température plus stable, réduit la consommation d'énergie (jusqu'à 30%) et prolonge la durée de vie de l'appareil.",
+    question: "Faut-il une autorisation pour installer un climatiseur ?",
+    answer: "En maison individuelle, aucune autorisation n'est nécessaire. En copropriété, il faut vérifier le règlement et parfois obtenir l'accord du syndic. Nous vous accompagnons dans ces démarches.",
     value: "item-4",
+  },
+  {
+    question: "Quelles sont les conditions exactes pour l'éco-PTZ ?",
+    answer: "L'éco-PTZ est accessible pour les logements construits avant 1990, en résidence principale, pour les propriétaires occupants ou bailleurs. Il faut réaliser un bouquet de travaux (au moins 2 actions) et faire appel à un professionnel RGE.",
+    value: "item-5",
   },
 ];
 

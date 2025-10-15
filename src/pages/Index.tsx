@@ -9,13 +9,13 @@ import CookieConsentBanner from "@/components/CookieConsentBanner";
 import HeroSection from "@/components/HeroSection";
 import BenefitsSection from "@/components/BenefitsSection";
 import CalculatorSection from "@/components/CalculatorSection";
-import FeaturesSection from "@/components/FeaturesSection";
 import ContactSection from "@/components/ContactSection";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
-import PrimesSection from "@/components/PrimesSection"; // New import
-import GuideSection from "@/components/GuideSection"; // New import
-import AvisSection from "@/components/AvisSection"; // New import
+import PrimesSection from "@/components/PrimesSection";
+import GuideSection from "@/components/GuideSection";
+import AvisSection from "@/components/AvisSection";
+import WhyChooseUsSection from "@/components/WhyChooseUsSection"; // New import
 
 
 const Index = () => {
@@ -32,11 +32,11 @@ const Index = () => {
       <PromoBanner />
       <HeroSection scrollToSection={scrollToSection} />
       <BenefitsSection />
-      <FeaturesSection />
       <CalculatorSection scrollToSection={scrollToSection} />
-      <PrimesSection /> {/* Section Primes réelle */}
-      <GuideSection /> {/* Section Guide réelle */}
-      <AvisSection /> {/* Section Avis réelle */}
+      <WhyChooseUsSection /> {/* Nouvelle section */}
+      <GuideSection />
+      <AvisSection />
+      <PrimesSection />
       <FAQSection />
       <ContactSection />
       <FloatingSimulatorButton onClick={() => scrollToSection('calculateur')} />
