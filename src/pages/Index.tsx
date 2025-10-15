@@ -11,13 +11,11 @@ import BenefitsSection from "@/components/BenefitsSection";
 import CalculatorSection from "@/components/CalculatorSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import ContactSection from "@/components/ContactSection";
-import FAQSection from "@/components/FAQSection"; // New import
-import Footer from "@/components/Footer"; // New import
-
-// Placeholder components for navigation links
-const PrimesSection = () => <section id="primes" className="py-24 bg-gray-50 text-center min-h-[50vh] flex items-center justify-center"><h2 className="text-3xl font-bold text-gray-800">Primes 2025 - Bientôt disponible !</h2></section>;
-const GuideSection = () => <section id="guide" className="py-24 bg-white text-center min-h-[50vh] flex items-center justify-center"><h2 className="text-3xl font-bold text-gray-800">Guide d'achat - Bientôt disponible !</h2></section>;
-const AvisSection = () => <section id="avis" className="py-24 bg-gray-50 text-center min-h-[50vh] flex items-center justify-center"><h2 className="text-3xl font-bold text-gray-800">Avis Clients - Bientôt disponible !</h2></section>;
+import FAQSection from "@/components/FAQSection";
+import Footer from "@/components/Footer";
+import PrimesSection from "@/components/PrimesSection"; // New import
+import GuideSection from "@/components/GuideSection"; // New import
+import AvisSection from "@/components/AvisSection"; // New import
 
 
 const Index = () => {
@@ -36,14 +34,14 @@ const Index = () => {
       <BenefitsSection />
       <FeaturesSection />
       <CalculatorSection scrollToSection={scrollToSection} />
-      <PrimesSection /> {/* Placeholder for Primes */}
-      <GuideSection /> {/* Placeholder for Guide */}
-      <AvisSection /> {/* Placeholder for Avis */}
-      <FAQSection /> {/* Integrated FAQ Section */}
+      <PrimesSection /> {/* Section Primes réelle */}
+      <GuideSection /> {/* Section Guide réelle */}
+      <AvisSection /> {/* Section Avis réelle */}
+      <FAQSection />
       <ContactSection />
       <FloatingSimulatorButton onClick={() => scrollToSection('calculateur')} />
       <CookieConsentBanner />
-      <Footer /> {/* Integrated Footer */}
+      <Footer />
       <MadeWithDyad />
     </div>
   );
