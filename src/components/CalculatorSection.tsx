@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck } from 'lucide-react';
+import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck, PiggyBank, Gift, University, Download, Send } from 'lucide-react';
 import { toast } from 'sonner'; // Using sonner for toasts
 
 // Mapping des départements pour affichage lisible
@@ -280,7 +280,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
       savings: Math.round(savings),
       eligibleEcoPTZ: eligibleEcoPTZ,
       revenuTier: revenuTier,
-      baseTVA: baseTVA, // Include baseTVA here
+      baseTVA: baseTVA,
     });
 
     scrollToSection('results');
@@ -750,7 +750,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
                   <h3 className="text-2xl font-bold text-green-800 mb-4">
-                    <img src="/placeholder.svg" alt="Piggy Bank" className="inline-block mr-2 h-6 w-6" />Coût final estimé
+                    <PiggyBank className="inline-block mr-2 h-6 w-6" />Coût final estimé
                   </h3>
                   <div className="text-5xl font-bold text-green-900 mb-2">{calculationData.finalCost}€</div>
                   <p className="text-green-700">Après déduction des aides directes</p>
@@ -813,7 +813,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Aides disponibles améliorées */}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8 border border-green-200">
                   <h3 className="text-2xl font-bold text-green-800 mb-6 flex items-center">
-                    <img src="/placeholder.svg" alt="Gift" className="inline-block mr-2 h-6 w-6" />Détail des aides disponibles
+                    <Gift className="inline-block mr-2 h-6 w-6" />Détail des aides disponibles
                   </h3>
                   <div id="aidesDetails" className="space-y-4">
                     {calculationData.maprime > 0 && (
@@ -858,7 +858,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               {calculationData.eligibleEcoPTZ && calculationData.ecoPTZ > 0 && (
                 <div id="pretsSection" className="mt-8 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 border border-orange-200">
                   <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center">
-                    <img src="/placeholder.svg" alt="University" className="inline-block mr-2 h-6 w-6" />Solutions de financement
+                    <University className="inline-block mr-2 h-6 w-6" />Solutions de financement
                   </h3>
                   <div id="pretsDetails" className="space-y-4">
                     <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-orange-500">
@@ -892,10 +892,10 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* CTA Final */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 relative z-10">
                     <Button onClick={() => scrollToSection('contact')} className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <img src="/placeholder.svg" alt="Paper Plane" className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
+                        <Send className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
                     </Button>
                     <Button onClick={() => toast.info('La génération de PDF est en cours de développement.')} className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition duration-300 flex items-center justify-center">
-                        <img src="/placeholder.svg" alt="Download" className="inline-block mr-2 h-5 w-5" />Télécharger cette estimation
+                        <Download className="inline-block mr-2 h-5 w-5" />Télécharger cette estimation
                     </Button>
                 </div>
                 <p className="text-sm mt-4 opacity-75 relative z-10">
