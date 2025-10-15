@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Snowflake, Phone, Mail, MapPin, ChevronRight, Gavel, Shield, FileText, Cookie } from 'lucide-react';
+import { Snowflake, Phone, Mail, MapPin } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -13,83 +13,71 @@ const Footer = () => {
     }
   };
 
-  // Placeholder functions for legal alerts
-  const showLegalMentions = () => alert('Mentions légales - Climatiseur.pro SAS - RCS Paris 123 456 789 - Capital 50 000€ - Siège social : 123 Avenue de la République, 75011 Paris');
-  const showPrivacyPolicy = () => alert('Politique de confidentialité - Vos données sont protégées conformément au RGPD - Droit d\'accès, rectification, opposition');
-  const showCGV = () => alert('Conditions Générales de Vente - Disponibles sur demande à contact@climatiseur.pro');
-  const showCookiesPolicy = () => alert('Politique Cookies - Nous utilisons des cookies essentiels au fonctionnement du site et des statistiques anonymes');
-
-
   return (
-    <footer className="bg-gray-800 text-white py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+    <footer className="bg-gray-900 text-white py-12 border-t border-blue-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-b border-gray-700 pb-8 mb-8">
           
           {/* Colonne 1: Logo et description */}
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <div className="flex items-center mb-4">
-              <Snowflake className="text-blue-400 text-2xl mr-2" />
-              <span className="text-xl font-bold text-white">Climatiseur.pro</span>
+              <Snowflake className="text-blue-400 text-3xl mr-2" />
+              <span className="text-2xl font-bold text-white">Climatiseur.pro</span>
             </div>
-            <p className="text-gray-400 mb-4 text-sm">
-              Votre expert en climatisation et optimisation des aides financières depuis 2020.
+            <p className="text-gray-400 text-sm">
+              Votre expert en installation de climatisation réversible et calcul des aides financières 2025. Devis gratuit et sans engagement.
             </p>
-            <div className="flex space-x-3">
-                <div className="bg-white rounded-lg p-2">
-                    <div className="text-xs font-bold text-gray-800">RGE</div>
-                </div>
-                <div className="bg-white rounded-lg p-2">
-                    <div className="text-xs font-bold text-gray-800">QUALIBAT</div>
-                </div>
-            </div>
           </div>
 
           {/* Colonne 2: Navigation rapide */}
           <div>
-            <h4 className="font-bold mb-4 text-lg">Navigation</h4>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li><a href="#calculateur" onClick={(e) => { e.preventDefault(); scrollToSection('calculateur'); }} className="hover:text-white transition duration-300 flex items-center"><ChevronRight className="text-blue-400 mr-2 h-3 w-3" />Calculateur</a></li>
-              <li><a href="#primes" onClick={(e) => { e.preventDefault(); scrollToSection('primes'); }} className="hover:text-white transition duration-300 flex items-center"><ChevronRight className="text-blue-400 mr-2 h-3 w-3" />Aides 2025</a></li>
-              <li><a href="#guide" onClick={(e) => { e.preventDefault(); scrollToSection('guide'); }} className="hover:text-white transition duration-300 flex items-center"><ChevronRight className="text-blue-400 mr-2 h-3 w-3" />Guide d'achat</a></li>
-              <li><a href="#avis" onClick={(e) => { e.preventDefault(); scrollToSection('avis'); }} className="hover:text-white transition duration-300 flex items-center"><ChevronRight className="text-blue-400 mr-2 h-3 w-3" />Avis clients</a></li>
-              <li><a href="#faq" onClick={(e) => { e.preventDefault(); scrollToSection('faq'); }} className="hover:text-white transition duration-300 flex items-center"><ChevronRight className="text-blue-400 mr-2 h-3 w-3" />FAQ</a></li>
-              <li><a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact'); }} className="hover:text-white transition duration-300 flex items-center"><ChevronRight className="text-blue-400 mr-2 h-3 w-3" />Contact</a></li>
+            <h4 className="text-lg font-semibold mb-4 text-blue-400">Navigation</h4>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#calculateur" onClick={(e) => { e.preventDefault(); scrollToSection('calculateur'); }} className="text-gray-400 hover:text-white transition duration-300">Simulateur de prix</a></li>
+              <li><a href="#primes" onClick={(e) => { e.preventDefault(); scrollToSection('primes'); }} className="text-gray-400 hover:text-white transition duration-300">Aides & Primes 2025</a></li>
+              <li><a href="#guide" onClick={(e) => { e.preventDefault(); scrollToSection('guide'); }} className="text-gray-400 hover:text-white transition duration-300">Guide d'achat</a></li>
+              <li><a href="#avis" onClick={(e) => { e.preventDefault(); scrollToSection('avis'); }} className="text-gray-400 hover:text-white transition duration-300">Avis Clients</a></li>
+              <li><a href="#faq" onClick={(e) => { e.preventDefault(); scrollToSection('faq'); }} className="text-gray-400 hover:text-white transition duration-300">FAQ</a></li>
             </ul>
           </div>
 
-          {/* Colonne 3: Légal */}
+          {/* Colonne 3: Contact */}
           <div>
-            <h4 className="font-bold mb-4 text-lg">Légal</h4>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li><a href="#" onClick={showLegalMentions} className="hover:text-white transition duration-300 flex items-center"><Gavel className="text-blue-400 mr-2 h-4 w-4" />Mentions légales</a></li>
-              <li><a href="#" onClick={showPrivacyPolicy} className="hover:text-white transition duration-300 flex items-center"><Shield className="text-blue-400 mr-2 h-4 w-4" />Confidentialité</a></li>
-              <li><a href="#" onClick={showCGV} className="hover:text-white transition duration-300 flex items-center"><FileText className="text-blue-400 mr-2 h-4 w-4" />CGV</a></li>
-              <li><a href="#" onClick={showCookiesPolicy} className="hover:text-white transition duration-300 flex items-center"><Cookie className="text-blue-400 mr-2 h-4 w-4" />Cookies</a></li>
-            </ul>
-          </div>
-
-          {/* Colonne 4: Contact */}
-          <div>
-            <h4 className="font-bold mb-4 text-lg">Contact</h4>
-            <ul className="space-y-3 text-gray-400 text-sm">
-              <li className="flex items-center">
-                <Phone className="text-blue-400 mr-3 h-5 w-5" />
-                <span>01 23 45 67 89</span>
+            <h4 className="text-lg font-semibold mb-4 text-blue-400">Contactez-nous</h4>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start">
+                <Phone className="h-5 w-5 text-blue-400 mr-3 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="text-white font-medium">01 23 45 67 89</p>
+                  <p className="text-gray-400 text-xs">Lun-Ven: 8h-19h</p>
+                </div>
               </li>
               <li className="flex items-center">
-                <Mail className="text-blue-400 mr-3 h-5 w-5" />
-                <span>contact@climatiseur.pro</span>
+                <Mail className="h-5 w-5 text-blue-400 mr-3" />
+                <p className="text-gray-400 hover:text-white transition duration-300">contact@climatiseur.pro</p>
               </li>
               <li className="flex items-start">
-                <MapPin className="text-blue-400 mr-3 h-5 w-5 mt-1 flex-shrink-0" />
-                <span>Intervention France entière</span>
+                <MapPin className="h-5 w-5 text-blue-400 mr-3 mt-1 flex-shrink-0" />
+                <p className="text-gray-400">123 Rue de la Climatisation, 75001 Paris</p>
               </li>
+            </ul>
+          </div>
+
+          {/* Colonne 4: Informations légales */}
+          <div>
+            <h4 className="text-lg font-semibold mb-4 text-blue-400">Informations</h4>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#" className="text-gray-400 hover:text-white transition duration-300">Mentions Légales</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition duration-300">Politique de Confidentialité</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition duration-300">Conditions Générales de Vente</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition duration-300">Gestion des Cookies</a></li>
             </ul>
           </div>
         </div>
-        
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400 text-sm">
-          <p>&copy; {currentYear} Climatiseur.pro - Tous droits réservés | SIRET: 123 456 789 00000 | RCS Paris</p>
+
+        {/* Copyright */}
+        <div className="text-center text-sm text-gray-500 pt-4">
+          &copy; {currentYear} Climatiseur.pro. Tous droits réservés.
         </div>
       </div>
     </footer>

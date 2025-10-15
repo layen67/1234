@@ -29,7 +29,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ scrollToSection }) => {
         updateCounter();
       });
     };
-    // Only run animation once on mount
     animateCounters();
   }, []);
 
