@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck } from 'lucide-react';
+import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck, PiggyBank, Leaf, University, MapPin, Ticket, Percent } from 'lucide-react';
 import { toast } from 'sonner'; // Using sonner for toasts
 
 // Mapping des départements pour affichage lisible
@@ -35,11 +35,29 @@ const departementsMapping: { [key: string]: string } = {
   "972": "Martinique", "973": "Guyane", "974": "La Réunion", "976": "Mayotte"
 };
 
-interface CalculatorSectionProps {
-  scrollToSection: (id: string) => void;
+interface CalculationResult {
+  equipmentCost: number;
+  installationCost: number;
+  optionsCost: number;
+  totalCost: number; // HT
+  vatCost: number;
+  totalTTC: number;
+  maprime: number;
+  cee: number;
+  tvaReduced: number;
+  ecoPTZ: number;
+  totalAides: number;
+  finalCost: number;
+  savings: number;
+  eligibleEcoPTZ: boolean;
 }
 
-const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }) => {
+interface CalculatorSectionProps {
+  scrollToSection: (id: string) => void;
+  openQuickContactModal: (data: CalculationResult | null, type: string) => void;
+}
+
+const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection, openQuickContactModal }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedInstallationType, setSelectedInstallationType] = useState<string>('');
   const [surface, setSurface] = useState<number | ''>('');
@@ -63,7 +81,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
   const [departmentError, setDepartmentError] = useState<string>('');
   const [incomeError, setIncomeError] = useState<string>('');
 
-  const [calculationData, setCalculationData] = useState<any>(null);
+  const [calculationData, setCalculationData] = useState<CalculationResult | null>(null);
 
   useEffect(() => {
     // Scroll to the calculator section when it becomes visible
@@ -84,7 +102,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
           toast.error('Veuillez sélectionner un type d\'installation.');
           isValid = false;
         }
-        if (!surface || surface < 10 || surface > 500) {
+        if (!surface || (typeof surface === 'number' && (surface < 10 || surface > 500))) {
           setSurfaceError('Veuillez saisir une surface valide entre 10 et 500 m².');
           toast.error('Veuillez saisir une surface valide entre 10 et 500 m².');
           isValid = false;
@@ -98,7 +116,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
         }
         break;
       case 3:
-        if (!income || income <= 0) {
+        if (!income || (typeof income === 'number' && income <= 0)) {
           setIncomeError('Veuillez saisir un revenu fiscal de référence valide.');
           toast.error('Veuillez saisir un revenu fiscal de référence valide.');
           isValid = false;
@@ -129,120 +147,146 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
     return progressPercentage;
   };
 
+  const incomeThresholds = {
+    1: { veryModest: 15677, modest: 21093 },
+    2: { veryModest: 22960, modest: 30914 },
+    3: { veryModest: 27579, modest: 37121 },
+    4: { veryModest: 32206, modest: 43337 },
+    5: { veryModest: 36851, modest: 49569 }
+  };
+
   const calculateEstimate = () => {
-    let equipmentCost = 0;
-    let installationCost = 0;
-    let optionsCost = 0;
-    let baseTVA = 0.20; // Default 20% TVA
+    if (!validateStep(3)) return;
 
     const parsedSurface = typeof surface === 'number' ? surface : 0;
     const parsedIncome = typeof income === 'number' ? income : 0;
     const parsedHouseholdSize = parseInt(householdSize);
+    const numRooms = parseInt(rooms);
 
-    // Base costs based on installation type
-    switch (selectedInstallationType) {
-      case 'monosplit':
-        equipmentCost = 1000 + (parsedSurface * 15); // Base + per m²
-        installationCost = 800;
-        break;
-      case 'multisplit':
-        equipmentCost = 2000 + (parsedSurface * 25);
-        installationCost = 1200;
-        break;
-      case 'gainable':
-        equipmentCost = 3500 + (parsedSurface * 35);
-        installationCost = 1800;
-        break;
-      default:
-        equipmentCost = 0;
-        installationCost = 0;
+    let basePrice = 0;
+    let equipmentCost = 0;
+    let installationCost = 0;
+    
+    // 1. Base costs based on installation type (using the logic from the HTML file)
+    switch(selectedInstallationType) {
+        case 'monosplit':
+            basePrice = 1290;
+            equipmentCost = 800;
+            installationCost = 490;
+            break;
+        case 'multisplit':
+            // Assuming 2 units for base multisplit, adding 500€ per extra room/unit
+            basePrice = 2490 + Math.max(0, numRooms - 2) * 500;
+            equipmentCost = 1800 + Math.max(0, numRooms - 2) * 400;
+            installationCost = 690;
+            break;
+        case 'gainable':
+            // Assuming 2 zones for base gainable, adding 600€ per extra zone/room
+            basePrice = 3990 + Math.max(0, numRooms - 2) * 600;
+            equipmentCost = 2800 + Math.max(0, numRooms - 2) * 500;
+            installationCost = 1190;
+            break;
+        default:
+            basePrice = 0;
+            equipmentCost = 0;
+            installationCost = 0;
     }
 
-    // Adjust costs based on rooms (simplified)
-    if (parseInt(rooms) > 1 && selectedInstallationType === 'monosplit') {
-      equipmentCost += (parseInt(rooms) - 1) * 300; // Additional units for multiple rooms
-    }
-
-    // Options cost
-    if (reversible) optionsCost += 200;
+    // Adjustment according to surface (simplified multiplier)
+    const surfaceMultiplier = 1 + Math.max(0, (parsedSurface - 50) * 0.01);
+    basePrice = basePrice * surfaceMultiplier;
+    equipmentCost = equipmentCost * surfaceMultiplier;
+    
+    // Options supplémentaires
+    let optionsCost = 0;
+    if (reversible) optionsCost += 400;
     if (wifi) optionsCost += 150;
-    if (inverter) optionsCost += 300; // Inverter is often standard for modern AC, but can be an upgrade
-
-    // Insulation impact (simplified: better insulation means less powerful/cheaper unit needed)
-    switch (insulation) {
-      case 'excellente': equipmentCost *= 0.9; break;
-      case 'bonne': equipmentCost *= 0.95; break;
-      case 'moyenne': equipmentCost *= 1.0; break;
-      case 'faible': equipmentCost *= 1.1; break;
-    }
-
-    // Construction year impact (older homes might need more work)
-    if (constructionYear === 'ancien') installationCost *= 1.1;
-
-    const totalCostHT = equipmentCost + installationCost + optionsCost;
-
-    // Aides calculation (simplified logic)
-    let maprimeRenov = 0;
-    let primeCEE = 0;
+    if (inverter) optionsCost += 200;
+    
+    // Total HT
+    const totalHT = equipmentCost + installationCost + optionsCost;
+    
+    // TVA 10% for energy renovation (assuming RGE installation and reversible)
+    const baseTVA = (installation && reversible && houseAge === 'plus15') ? 0.10 : 0.20;
+    const vat = totalHT * baseTVA;
+    const totalTTC = totalHT + vat;
+    
+    // 2. Aides calculation
+    let maprime = 0;
+    let cee = 0;
     let eligibleEcoPTZ = false;
 
-    // MaPrimeRénov' eligibility (simplified tiers based on income and household size)
-    // These thresholds are illustrative and should be replaced with actual 2025 data
-    if (houseAge === 'plus15' && installation) { // Only for older homes and RGE installation
-      if (parsedHouseholdSize === 1) {
-        if (parsedIncome <= 20000) maprimeRenov = 1500;
-        else if (parsedIncome <= 30000) maprimeRenov = 1000;
-      } else if (parsedHouseholdSize >= 2) {
-        if (parsedIncome <= 30000) maprimeRenov = 2000;
-        else if (parsedIncome <= 45000) maprimeRenov = 1500;
-      }
-      // Max out MaPrimeRénov' at a certain percentage of the cost
-      maprimeRenov = Math.min(maprimeRenov, totalCostHT * 0.3);
-    }
-
-    // Prime CEE (simplified)
-    if (installation && reversible) { // CEE often requires RGE and reversible
-      if (parsedSurface > 50) primeCEE = 500;
-      else primeCEE = 300;
-      primeCEE = Math.min(primeCEE, totalCostHT * 0.1);
-    }
-
-    // TVA réduite 10% for energy renovation (if RGE installation and reversible)
+    // MaPrimeRénov' (MPR)
     if (installation && reversible && houseAge === 'plus15') {
-      baseTVA = 0.10;
+        const thresholds = incomeThresholds[parsedHouseholdSize] || incomeThresholds[5];
+        
+        if (parsedIncome <= thresholds.veryModest) {
+            maprime = Math.min(4000, totalTTC * 0.75);
+        } else if (parsedIncome <= thresholds.modest) {
+            maprime = Math.min(3000, totalTTC * 0.6);
+        } else {
+            maprime = Math.min(2000, totalTTC * 0.4);
+        }
     }
 
-    // Eco-PTZ eligibility
-    if (houseAge === 'plus15' && propertyStatus === 'residence_principale' && ownerType === 'occupant') {
-      eligibleEcoPTZ = true;
+    // Prime CEE
+    if (installation && reversible) {
+        if (inverter) {
+            cee = 350 + (parsedSurface * 2);
+        } else {
+            cee = 200 + (parsedSurface * 1.5);
+        }
+        cee = Math.min(cee, 800);
+    }
+    
+    // TVA réduite (already calculated in vat)
+    const tvaReduced = baseTVA === 0.10 ? (totalHT * 0.10) : 0;
+
+    // Éco-PTZ
+    eligibleEcoPTZ = (
+        houseAge === 'plus15' && 
+        propertyStatus === 'residence_principale' &&
+        (ownerType === 'occupant' || ownerType === 'bailleur')
+    );
+    
+    let ecoPTZ = 0;
+    if (eligibleEcoPTZ) {
+        // Max 15000€ for single action (PAC air-air is often considered a single action)
+        ecoPTZ = Math.min(15000, totalTTC * 0.7); 
     }
 
-    const vatAmount = totalCostHT * baseTVA;
-    const totalTTC = totalCostHT + vatAmount;
-    const totalAides = maprimeRenov + primeCEE;
-    const finalCost = totalTTC - totalAides;
+    const totalAides = maprime + cee; // TVA réduite est une économie sur le coût, pas une aide directe cumulable ici
+    const finalCost = Math.max(0, totalTTC - totalAides);
     const savings = totalAides;
 
-    setCalculationData({
+    const results: CalculationResult = {
       equipmentCost: Math.round(equipmentCost),
       installationCost: Math.round(installationCost),
       optionsCost: Math.round(optionsCost),
-      totalCost: Math.round(totalCostHT), // HT
-      vatCost: Math.round(vatAmount),
+      totalCost: Math.round(totalHT),
+      vatCost: Math.round(vat),
       totalTTC: Math.round(totalTTC),
-      maprime: Math.round(maprimeRenov),
-      cee: Math.round(primeCEE),
-      tvaReduced: baseTVA === 0.10 ? Math.round(vatAmount) : 0, // Indicate if 10% TVA was applied
-      ecoPTZ: eligibleEcoPTZ ? 15000 : 0, // Max Eco-PTZ for single action
+      maprime: Math.round(maprime),
+      cee: Math.round(cee),
+      tvaReduced: Math.round(tvaReduced),
+      ecoPTZ: Math.round(ecoPTZ),
       totalAides: Math.round(totalAides),
       finalCost: Math.round(finalCost),
       savings: Math.round(savings),
       eligibleEcoPTZ: eligibleEcoPTZ,
-    });
+    };
 
+    setCalculationData(results);
     scrollToSection('results');
     toast.success('Estimation calculée avec succès !');
   };
+
+  const handleInstallationTypeClick = (type: string) => {
+    setSelectedInstallationType(type);
+    setCalculationData(null); // Reset results on type change
+  };
+
+  const formatCurrency = (amount: number) => `${amount.toLocaleString('fr-FR')}€`;
 
   return (
     <section id="calculateur" className="py-16 bg-gray-50">
@@ -306,7 +350,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
           {/* Étape 1: Type d'installation améliorée */}
           {currentStep === 1 && (
-            <div id="step1" className="step-content">
+            <div id="step1" className="step-content animate-slideIn">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Étape 1: Type d'installation</h2>
                 <p className="text-gray-600">Sélectionnez le type de climatisation qui correspond à vos besoins</p>
@@ -316,7 +360,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Monosplit amélioré */}
                 <div
                   className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 relative overflow-hidden group ${selectedInstallationType === 'monosplit' ? 'type-selected border-blue-500' : 'border-gray-200'}`}
-                  onClick={() => setSelectedInstallationType('monosplit')}
+                  onClick={() => handleInstallationTypeClick('monosplit')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
                   <div className="text-center relative z-10">
@@ -341,7 +385,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Multisplit amélioré */}
                 <div
                   className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-green-50/30 relative overflow-hidden group ${selectedInstallationType === 'multisplit' ? 'type-selected border-blue-500' : 'border-gray-200'}`}
-                  onClick={() => setSelectedInstallationType('multisplit')}
+                  onClick={() => handleInstallationTypeClick('multisplit')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
                   <div className="text-center relative z-10">
@@ -362,7 +406,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Gainable amélioré */}
                 <div
                   className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50/30 relative overflow-hidden group ${selectedInstallationType === 'gainable' ? 'type-selected border-blue-500' : 'border-gray-200'}`}
-                  onClick={() => setSelectedInstallationType('gainable')}
+                  onClick={() => handleInstallationTypeClick('gainable')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-purple-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
                   <div className="text-center relative z-10">
@@ -389,7 +433,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div>
                   <Label htmlFor="surface" className="mb-2 flex items-center">
                     Surface à climatiser (m²) <span className="text-red-500">*</span>
-                    <span className="tooltip ml-1 relative">
+                    <span className="tooltip ml-1 relative group">
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                       <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                         Surface totale des pièces à climatiser. Pour une estimation précise, mesurez chaque pièce.
@@ -433,7 +477,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
           {/* Étape 2: Caractéristiques améliorée */}
           {currentStep === 2 && (
-            <div id="step2" className="step-content">
+            <div id="step2" className="step-content animate-slideIn">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Étape 2: Caractéristiques du logement</h2>
                 <p className="text-gray-600">Ces informations nous aident à affiner votre estimation</p>
@@ -471,7 +515,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div>
                   <Label htmlFor="insulation" className="mb-2 flex items-center">
                     Isolation
-                    <span className="tooltip ml-1 relative">
+                    <span className="tooltip ml-1 relative group">
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                       <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                         Qualité de l'isolation de votre logement. Influence la puissance nécessaire.
@@ -532,7 +576,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
           {/* Étape 3: Situation financière améliorée */}
           {currentStep === 3 && (
-            <div id="step3" className="step-content">
+            <div id="step3" className="step-content animate-slideIn">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Étape 3: Éligibilité aux aides</h2>
                 <p className="text-gray-600">Ces informations déterminent votre éligibilité aux aides financières</p>
@@ -542,7 +586,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div>
                   <Label htmlFor="income" className="mb-2 flex items-center">
                     Revenu fiscal de référence (€) <span className="text-red-500">*</span>
-                    <span className="tooltip ml-1 relative">
+                    <span className="tooltip ml-1 relative group">
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                       <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                         Montant indiqué sur votre avis d'imposition. Détermine le montant des aides.
@@ -609,7 +653,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               {/* Informations propriétaire pour éco-PTZ */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
                 <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
-                  <Info className="mr-2 h-5 w-5" />
+                  <University className="mr-2 h-5 w-5" />
                   Informations pour l'éco-PTZ
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -627,7 +671,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   </div>
                   <div>
                     <Label htmlFor="ownerType" className="mb-2">Type de propriétaire</Label>
-                    <Select value={ownerType} onValueChange={setPropertyStatus}> {/* Should be setOwnerType */}
+                    <Select value={ownerType} onValueChange={setOwnerType}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionnez le type de propriétaire" />
                       </SelectTrigger>
@@ -684,15 +728,15 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   <h3 className="text-2xl font-bold text-red-800 mb-4">
                     <Euro className="inline-block mr-2 h-6 w-6" />Avant aides
                   </h3>
-                  <div className="text-4xl font-bold text-red-900 mb-2 line-through">{calculationData.totalTTC}€</div>
+                  <div className="text-4xl font-bold text-red-900 mb-2 line-through">{formatCurrency(calculationData.totalTTC + calculationData.totalAides)}</div>
                   <p className="text-red-700">Prix public TTC</p>
                 </div>
                 
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
                   <h3 className="text-2xl font-bold text-green-800 mb-4">
-                    <img src="/placeholder.svg" alt="Piggy Bank" className="inline-block mr-2 h-6 w-6" />Après aides
+                    <PiggyBank className="inline-block mr-2 h-6 w-6" />Après aides
                   </h3>
-                  <div className="text-5xl font-bold text-green-900 mb-2">{calculationData.finalCost}€</div>
+                  <div className="text-5xl font-bold text-green-900 mb-2">{formatCurrency(calculationData.finalCost)}</div>
                   <p className="text-green-700">Coût final après aides</p>
                 </div>
               </div>
@@ -707,51 +751,51 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                     <div className="flex justify-between items-center">
                         <span className="flex items-center">
                             Équipement
-                            <span className="tooltip ml-1 relative">
+                            <span className="tooltip ml-1 relative group">
                                 <Info className="h-4 w-4 text-blue-500 cursor-help" />
                                 <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                                     Prix des unités intérieures et extérieures, télécommande
                                 </span>
                             </span>
                         </span>
-                        <span className="font-semibold text-lg">{calculationData.equipmentCost}€</span>
+                        <span className="font-semibold text-lg">{formatCurrency(calculationData.equipmentCost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="flex items-center">
                             Installation
-                            <span className="tooltip ml-1 relative">
+                            <span className="tooltip ml-1 relative group">
                                 <Info className="h-4 w-4 text-blue-500 cursor-help" />
                                 <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                                     Main d'œuvre professionnelle RGE, mise en service
                                 </span>
                             </span>
                         </span>
-                        <span className="font-semibold text-lg">{calculationData.installationCost}€</span>
+                        <span className="font-semibold text-lg">{formatCurrency(calculationData.installationCost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="flex items-center">
                             Options
-                            <span className="tooltip ml-1 relative">
+                            <span className="tooltip ml-1 relative group">
                                 <Info className="h-4 w-4 text-blue-500 cursor-help" />
                                 <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                                     Fonctions supplémentaires sélectionnées
                                 </span>
                             </span>
                         </span>
-                        <span className="font-semibold text-lg">{calculationData.optionsCost}€</span>
+                        <span className="font-semibold text-lg">{formatCurrency(calculationData.optionsCost)}</span>
                     </div>
                     <hr className="border-blue-200 my-4" />
                     <div className="flex justify-between text-xl font-bold text-blue-800">
                         <span>Total HT:</span>
-                        <span>{calculationData.totalCost}€</span>
+                        <span>{formatCurrency(calculationData.totalCost)}</span>
                     </div>
                     <div className="flex justify-between text-lg text-blue-700">
-                        <span>TVA appliquée ({baseTVA * 100}%):</span>
-                        <span>{calculationData.vatCost}€</span>
+                        <span>TVA appliquée ({calculationData.vatCost > 0 ? (calculationData.vatCost / calculationData.totalCost * 100).toFixed(0) : 20}%):</span>
+                        <span>{formatCurrency(calculationData.vatCost)}</span>
                     </div>
                     <div className="flex justify-between text-2xl font-bold text-blue-900 bg-white rounded-lg p-4 mt-4 border border-blue-200">
                         <span>Total TTC:</span>
-                        <span>{calculationData.totalTTC}€</span>
+                        <span>{formatCurrency(calculationData.totalTTC)}</span>
                     </div>
                   </div>
                 </div>
@@ -759,7 +803,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Aides disponibles améliorées */}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-8 border border-green-200">
                   <h3 className="text-2xl font-bold text-green-800 mb-6 flex items-center">
-                    <img src="/placeholder.svg" alt="Gift" className="inline-block mr-2 h-6 w-6" />Détail des aides disponibles
+                    <Leaf className="mr-2 h-6 w-6" />Détail des aides disponibles
                   </h3>
                   <div id="aidesDetails" className="space-y-4">
                     {calculationData.maprime > 0 && (
@@ -768,7 +812,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                           <span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
                           MaPrimeRénov'
                         </span>
-                        <span className="font-semibold text-green-600">+{calculationData.maprime}€</span>
+                        <span className="font-semibold text-green-600">+{formatCurrency(calculationData.maprime)}</span>
                       </div>
                     )}
                     {calculationData.cee > 0 && (
@@ -777,26 +821,26 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                           <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
                           Prime CEE
                         </span>
-                        <span className="font-semibold text-green-600">+{calculationData.cee}€</span>
+                        <span className="font-semibold text-green-600">+{formatCurrency(calculationData.cee)}</span>
                       </div>
                     )}
-                    {calculationData.tvaReduced > 0 && (
+                    {calculationData.vatCost < calculationData.totalCost * 0.20 && (
                       <div className="flex justify-between items-center">
                         <span className="flex items-center">
                           <span className="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
                           TVA réduite 10%
                         </span>
-                        <span className="font-semibold text-green-600">+{calculationData.tvaReduced}€</span>
+                        <span className="font-semibold text-green-600">Appliquée</span>
                       </div>
                     )}
-                    {calculationData.maprime === 0 && calculationData.cee === 0 && calculationData.tvaReduced === 0 && (
+                    {calculationData.totalAides === 0 && (
                       <p className="text-gray-600">Aucune aide directe calculée pour l'instant. Contactez un expert pour une étude personnalisée.</p>
                     )}
                   </div>
                   <hr className="border-green-200 my-6" />
                   <div className="flex justify-between text-2xl font-bold text-green-900 bg-white rounded-lg p-4 border border-green-200">
                     <span>Total des aides:</span>
-                    <span>{calculationData.totalAides}€</span>
+                    <span>{formatCurrency(calculationData.totalAides)}</span>
                   </div>
                 </div>
               </div>
@@ -805,7 +849,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               {calculationData.eligibleEcoPTZ && calculationData.ecoPTZ > 0 && (
                 <div id="pretsSection" className="mt-8 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 border border-orange-200">
                   <h3 className="text-2xl font-bold text-orange-800 mb-6 flex items-center">
-                    <img src="/placeholder.svg" alt="University" className="inline-block mr-2 h-6 w-6" />Solutions de financement
+                    <University className="mr-2 h-6 w-6" />Solutions de financement
                   </h3>
                   <div id="pretsDetails" className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -813,7 +857,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                         <span className="w-3 h-3 rounded-full bg-orange-500 mr-2"></span>
                         Éco-PTZ (prêt à taux 0%)
                       </span>
-                      <span className="font-semibold text-orange-600">Jusqu'à {calculationData.ecoPTZ}€</span>
+                      <span className="font-semibold text-orange-600">Jusqu'à {formatCurrency(calculationData.ecoPTZ)}</span>
                     </div>
                   </div>
                 </div>
@@ -826,8 +870,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
                 
                 <h3 className="text-3xl font-bold mb-6 relative z-10">Votre investissement final</h3>
-                <div className="text-6xl font-bold mb-4 relative z-10">{calculationData.finalCost}€</div>
-                <p className="text-xl opacity-90 mb-6 relative z-10">Soit une économie de <span className="font-bold text-yellow-300">{calculationData.savings}€</span></p>
+                <div className="text-6xl font-bold mb-4 relative z-10">{formatCurrency(calculationData.finalCost)}</div>
+                <p className="text-xl opacity-90 mb-6 relative z-10">Soit une économie de <span className="font-bold text-yellow-300">{formatCurrency(calculationData.savings)}</span></p>
                 
                 {/* Économies visualisées */}
                 <div className="max-w-md mx-auto bg-white/20 rounded-full h-4 mb-6 relative z-10">
@@ -837,16 +881,16 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 {/* Informations de financement */}
                 {calculationData.eligibleEcoPTZ && calculationData.ecoPTZ > 0 && (
                   <div id="financementInfo" className="mt-6 bg-white/20 rounded-lg p-4 relative z-10">
-                      <p className="text-lg">Avec l'éco-PTZ, vous pouvez financer jusqu'à {calculationData.ecoPTZ}€ à taux 0% sur 15 ans.</p>
+                      <p className="text-lg">Avec l'éco-PTZ, vous pouvez financer jusqu'à {formatCurrency(calculationData.ecoPTZ)} à taux 0% sur 15 ans.</p>
                   </div>
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 relative z-10">
-                    <Button onClick={() => scrollToSection('contact')} className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <img src="/placeholder.svg" alt="Paper Plane" className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
+                    <Button onClick={() => openQuickContactModal(calculationData, 'quick')} className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <Calculator className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
                     </Button>
                     <Button onClick={() => toast.info('La génération de PDF est en cours de développement.')} className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition duration-300 flex items-center justify-center">
-                        <img src="/placeholder.svg" alt="Download" className="inline-block mr-2 h-5 w-5" />Télécharger cette estimation
+                        <Info className="inline-block mr-2 h-5 w-5" />Télécharger cette estimation
                     </Button>
                 </div>
                 <p className="text-sm mt-4 opacity-75 relative z-10">

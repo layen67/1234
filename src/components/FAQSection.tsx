@@ -6,30 +6,30 @@ import FAQItem from './FAQItem';
 
 const faqData = [
   {
-    question: "Quel est le prix moyen d'une installation de climatisation réversible ?",
-    answer: "Le prix varie fortement selon le type (mono/multi-split, gainable) et la puissance. En moyenne, comptez entre 1 500€ et 3 000€ pour un monosplit installé, et entre 3 000€ et 6 000€ pour un multisplit. Notre simulateur vous donne une estimation précise en fonction de votre logement et de votre éligibilité aux aides.",
+    question: "Quelle est la durée d'installation moyenne ?",
+    answer: "L'installation d'un climatiseur monosplit prend généralement 1 journée. Pour un multisplit, comptez 1 à 2 jours selon le nombre d'unités. Les systèmes gainables nécessitent 2 à 3 jours de travail.",
     value: "item-1",
   },
   {
-    question: "Suis-je éligible aux aides de l'État (MaPrimeRénov', CEE) ?",
-    answer: "L'éligibilité dépend principalement de votre revenu fiscal de référence, de la nature de votre logement (résidence principale de plus de 15 ans) et du fait que l'installation soit réalisée par un professionnel RGE (Reconnu Garant de l'Environnement). Notre simulateur intègre ces critères pour vous donner une première estimation.",
+    question: "Les aides sont-elles cumulables ?",
+    answer: "Oui, la plupart des aides sont cumulables : MaPrimeRénov' + Prime CEE + TVA réduite. L'Éco-PTZ peut également être combiné avec les autres aides pour financer le reste à charge.",
     value: "item-2",
   },
   {
-    question: "Combien de temps prend l'installation d'un climatiseur ?",
-    answer: "Pour un monosplit standard, l'installation prend généralement une demi-journée à une journée. Pour un multisplit ou un système gainable, cela peut prendre 1 à 3 jours selon la complexité et le nombre d'unités intérieures.",
+    question: "Faut-il une autorisation pour installer un climatiseur ?",
+    answer: "En maison individuelle, aucune autorisation n'est nécessaire. En copropriété, il faut vérifier le règlement et parfois obtenir l'accord du syndic. Nous vous accompagnons dans ces démarches.",
     value: "item-3",
   },
   {
-    question: "Qu'est-ce qu'un climatiseur Inverter ?",
-    answer: "La technologie Inverter permet au compresseur de moduler sa puissance en continu, au lieu de s'arrêter et de redémarrer constamment. Cela assure une température plus stable, réduit la consommation d'énergie (jusqu'à 30%) et prolonge la durée de vie de l'appareil.",
+    question: "Quelles sont les conditions exactes pour l'éco-PTZ ?",
+    answer: "L'éco-PTZ est accessible pour les logements construits avant 1990, en résidence principale, pour les propriétaires occupants ou bailleurs. Il faut réaliser un bouquet de travaux (au moins 2 actions) et faire appel à un professionnel RGE.",
     value: "item-4",
   },
 ];
 
 const FAQSection = () => {
   return (
-    <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-900">
+    <section id="faq" className="w-full py-16 bg-white dark:bg-gray-900">
       <div className="container px-4 md:px-6 max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-gray-800 dark:text-white">
