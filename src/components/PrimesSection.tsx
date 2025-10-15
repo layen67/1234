@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Euro, ShieldCheck, Home, Zap, CheckCircle, Leaf, Percentage, University, MapPin, Ticket } from 'lucide-react';
+import { Euro, ShieldCheck, Home, Zap, CheckCircle, Leaf, Percentage, University, MapPin, Ticket, Clock } from 'lucide-react';
 
 const PrimesSection = () => {
   const aides = [

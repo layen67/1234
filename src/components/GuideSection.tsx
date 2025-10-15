@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Thermometer, Zap, Maximize2, Volume2, Ruler, Wifi, CheckCircle } from 'lucide-react';
+import { Thermometer, Zap, Maximize2, Volume2, Ruler, Wifi, CheckCircle, Home, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const GuideSection = () => {
