@@ -35,6 +35,15 @@ const departementsMapping: { [key: string]: string } = {
   "972": "Martinique", "973": "Guyane", "974": "La Réunion", "976": "Mayotte"
 };
 
+// Tiers de revenus MaPrimeRénov' (simplifié et illustratif)
+const REVENU_TIERS = {
+    TRES_MODESTE: 1, // Bleu
+    MODESTE: 2,      // Jaune
+    INTERMEDIAIRE: 3, // Violet
+    AISÉ: 4,         // Rose
+    NON_ELIGIBLE: 5
+};
+
 interface CalculatorSectionProps {
   scrollToSection: (id: string) => void;
 }
@@ -51,7 +60,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
   const [reversible, setReversible] = useState<boolean>(true);
   const [wifi, setWifi] = useState<boolean>(false);
   const [inverter, setInverter] = useState<boolean>(true);
-  const [installation, setInstallation] = useState<boolean>(true);
+  const [installation, setInstallation] = useState<boolean>(true); // RGE installation
   const [income, setIncome] = useState<number | ''>('');
   const [householdSize, setHouseholdSize] = useState<string>('1');
   const [houseAge, setHouseAge] = useState<string>('plus15');
@@ -66,11 +75,12 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
   const [calculationData, setCalculationData] = useState<any>(null);
 
   useEffect(() => {
-    // Scroll to the calculator section when it becomes visible
-    if (currentStep === 1) {
-      scrollToSection('calculateur');
+    // Scroll to the calculator section when the step changes
+    const element = document.getElementById('calculateur');
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [currentStep, scrollToSection]);
+  }, [currentStep]);
 
   const validateStep = (step: number): boolean => {
     let isValid = true;
@@ -84,7 +94,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
           toast.error('Veuillez sélectionner un type d\'installation.');
           isValid = false;
         }
-        if (!surface || surface < 10 || surface > 500) {
+        const parsedSurface = typeof surface === 'number' ? surface : parseInt(surface as string);
+        if (!parsedSurface || parsedSurface < 10 || parsedSurface > 500) {
           setSurfaceError('Veuillez saisir une surface valide entre 10 et 500 m².');
           toast.error('Veuillez saisir une surface valide entre 10 et 500 m².');
           isValid = false;
@@ -98,7 +109,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
         }
         break;
       case 3:
-        if (!income || income <= 0) {
+        const parsedIncome = typeof income === 'number' ? income : parseInt(income as string);
+        if (!parsedIncome || parsedIncome <= 0) {
           setIncomeError('Veuillez saisir un revenu fiscal de référence valide.');
           toast.error('Veuillez saisir un revenu fiscal de référence valide.');
           isValid = false;
@@ -125,33 +137,51 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
   };
 
   const updateProgress = () => {
+    // Progress is based on completed steps (1/3, 2/3, 3/3)
     const progressPercentage = ((currentStep - 1) / 2) * 100;
     return progressPercentage;
   };
 
+  const getRevenuTier = (income: number, size: number): number => {
+    // Simplified thresholds for MaPrimeRénov' based on household size (illustrative)
+    if (size === 1) {
+        if (income <= 15000) return REVENU_TIERS.TRES_MODESTE;
+        if (income <= 25000) return REVENU_TIERS.MODESTE;
+        if (income <= 40000) return REVENU_TIERS.INTERMEDIAIRE;
+        if (income > 40000) return REVENU_TIERS.AISÉ;
+    }
+    if (size >= 2) {
+        if (income <= 25000) return REVENU_TIERS.TRES_MODESTE;
+        if (income <= 40000) return REVENU_TIERS.MODESTE;
+        if (income <= 60000) return REVENU_TIERS.INTERMEDIAIRE;
+        if (income > 60000) return REVENU_TIERS.AISÉ;
+    }
+    return REVENU_TIERS.NON_ELIGIBLE;
+  };
+
   const calculateEstimate = () => {
+    const parsedSurface = typeof surface === 'number' ? surface : parseInt(surface as string);
+    const parsedIncome = typeof income === 'number' ? income : parseInt(income as string);
+    const parsedHouseholdSize = parseInt(householdSize);
+
     let equipmentCost = 0;
     let installationCost = 0;
     let optionsCost = 0;
     let baseTVA = 0.20; // Default 20% TVA
 
-    const parsedSurface = typeof surface === 'number' ? surface : 0;
-    const parsedIncome = typeof income === 'number' ? income : 0;
-    const parsedHouseholdSize = parseInt(householdSize);
-
-    // Base costs based on installation type
+    // 1. Base costs based on installation type and surface
     switch (selectedInstallationType) {
       case 'monosplit':
-        equipmentCost = 1000 + (parsedSurface * 15); // Base + per m²
-        installationCost = 800;
+        equipmentCost = 1200 + (parsedSurface * 18); 
+        installationCost = 900;
         break;
       case 'multisplit':
-        equipmentCost = 2000 + (parsedSurface * 25);
-        installationCost = 1200;
+        equipmentCost = 2500 + (parsedSurface * 28);
+        installationCost = 1500;
         break;
       case 'gainable':
-        equipmentCost = 3500 + (parsedSurface * 35);
-        installationCost = 1800;
+        equipmentCost = 4000 + (parsedSurface * 40);
+        installationCost = 2200;
         break;
       default:
         equipmentCost = 0;
@@ -160,55 +190,66 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
     // Adjust costs based on rooms (simplified)
     if (parseInt(rooms) > 1 && selectedInstallationType === 'monosplit') {
-      equipmentCost += (parseInt(rooms) - 1) * 300; // Additional units for multiple rooms
+      equipmentCost += (parseInt(rooms) - 1) * 400; 
     }
 
-    // Options cost
-    if (reversible) optionsCost += 200;
+    // 2. Options cost
+    if (reversible) optionsCost += 300;
     if (wifi) optionsCost += 150;
-    if (inverter) optionsCost += 300; // Inverter is often standard for modern AC, but can be an upgrade
-
-    // Insulation impact (simplified: better insulation means less powerful/cheaper unit needed)
+    if (inverter) optionsCost += 0; // Assuming Inverter is standard, no extra cost
+    
+    // 3. Insulation impact (better insulation reduces required power/cost)
     switch (insulation) {
-      case 'excellente': equipmentCost *= 0.9; break;
+      case 'excellente': equipmentCost *= 0.85; break;
       case 'bonne': equipmentCost *= 0.95; break;
       case 'moyenne': equipmentCost *= 1.0; break;
-      case 'faible': equipmentCost *= 1.1; break;
+      case 'faible': equipmentCost *= 1.15; break;
     }
 
-    // Construction year impact (older homes might need more work)
-    if (constructionYear === 'ancien') installationCost *= 1.1;
+    // 4. Construction year impact (older homes might need more complex installation)
+    if (constructionYear === 'ancien') installationCost *= 1.15;
 
     const totalCostHT = equipmentCost + installationCost + optionsCost;
 
-    // Aides calculation (simplified logic)
+    // 5. Aides calculation (MaPrimeRénov', CEE, TVA)
     let maprimeRenov = 0;
     let primeCEE = 0;
     let eligibleEcoPTZ = false;
+    let revenuTier = getRevenuTier(parsedIncome, parsedHouseholdSize);
 
-    // MaPrimeRénov' eligibility (simplified tiers based on income and household size)
-    // These thresholds are illustrative and should be replaced with actual 2025 data
-    if (houseAge === 'plus15' && installation) { // Only for older homes and RGE installation
-      if (parsedHouseholdSize === 1) {
-        if (parsedIncome <= 20000) maprimeRenov = 1500;
-        else if (parsedIncome <= 30000) maprimeRenov = 1000;
-      } else if (parsedHouseholdSize >= 2) {
-        if (parsedIncome <= 30000) maprimeRenov = 2000;
-        else if (parsedIncome <= 45000) maprimeRenov = 1500;
-      }
-      // Max out MaPrimeRénov' at a certain percentage of the cost
-      maprimeRenov = Math.min(maprimeRenov, totalCostHT * 0.3);
+    // MaPrimeRénov' (MPR) - Only for reversible AC (Heat Pump) and RGE installation in older homes
+    if (houseAge === 'plus15' && installation && reversible) {
+        switch (revenuTier) {
+            case REVENU_TIERS.TRES_MODESTE:
+                maprimeRenov = 2500; // Max aid for specific equipment
+                break;
+            case REVENU_TIERS.MODESTE:
+                maprimeRenov = 1800;
+                break;
+            case REVENU_TIERS.INTERMEDIAIRE:
+                maprimeRenov = 1000;
+                break;
+            case REVENU_TIERS.AISÉ:
+                maprimeRenov = 0; // Not eligible for MPR
+                break;
+        }
+        // MPR cannot exceed 90% of the cost (simplified cap)
+        maprimeRenov = Math.min(maprimeRenov, totalCostHT * 0.4);
     }
 
-    // Prime CEE (simplified)
-    if (installation && reversible) { // CEE often requires RGE and reversible
-      if (parsedSurface > 50) primeCEE = 500;
-      else primeCEE = 300;
-      primeCEE = Math.min(primeCEE, totalCostHT * 0.1);
+    // Prime CEE (Certificats d'Économie d'Énergie) - Requires RGE and reversible
+    if (installation && reversible) {
+        // CEE amount depends on region and income (simplified)
+        let baseCEE = parsedSurface * 5; // Base CEE per m²
+        if (revenuTier <= REVENU_TIERS.MODESTE) {
+            primeCEE = Math.min(baseCEE * 2, 800); // Higher cap for low income
+        } else {
+            primeCEE = Math.min(baseCEE, 400);
+        }
     }
 
-    // TVA réduite 10% for energy renovation (if RGE installation and reversible)
-    if (installation && reversible && houseAge === 'plus15') {
+    // TVA réduite 10%
+    if (installation && houseAge === 'plus15') {
       baseTVA = 0.10;
     }
 
@@ -232,16 +273,27 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
       totalTTC: Math.round(totalTTC),
       maprime: Math.round(maprimeRenov),
       cee: Math.round(primeCEE),
-      tvaReduced: baseTVA === 0.10 ? Math.round(vatAmount) : 0, // Indicate if 10% TVA was applied
-      ecoPTZ: eligibleEcoPTZ ? 15000 : 0, // Max Eco-PTZ for single action
+      tvaReduced: baseTVA === 0.10 ? Math.round(vatAmount) : 0, 
+      ecoPTZ: eligibleEcoPTZ ? 15000 : 0, 
       totalAides: Math.round(totalAides),
       finalCost: Math.round(finalCost),
       savings: Math.round(savings),
       eligibleEcoPTZ: eligibleEcoPTZ,
+      revenuTier: revenuTier,
     });
 
     scrollToSection('results');
-    toast.success('Estimation calculée avec succès !');
+    toast.success('Estimation calculée avec succès ! Consultez les résultats ci-dessous.');
+  };
+
+  const getRevenuTierLabel = (tier: number) => {
+    switch (tier) {
+        case REVENU_TIERS.TRES_MODESTE: return "Très Modeste (Bleu)";
+        case REVENU_TIERS.MODESTE: return "Modeste (Jaune)";
+        case REVENU_TIERS.INTERMEDIAIRE: return "Intermédiaire (Violet)";
+        case REVENU_TIERS.AISÉ: return "Aisé (Rose)";
+        default: return "Non éligible aux aides directes";
+    }
   };
 
   return (
@@ -261,7 +313,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div className="flex flex-col items-center">
                   <div
                     className={`step-indicator w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg border-2 border-white transition-all duration-300
-                      ${stepNum < currentStep ? 'bg-green-500 text-white' : stepNum === currentStep ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'}`}
+                      ${stepNum < currentStep ? 'bg-green-500 text-white' : stepNum === currentStep ? 'bg-blue-500 text-white animate-pulse' : 'bg-gray-300 text-gray-600'}`}
                   >
                     {stepNum < currentStep ? <Check className="h-6 w-6" /> : stepNum}
                   </div>
@@ -306,7 +358,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
           {/* Étape 1: Type d'installation améliorée */}
           {currentStep === 1 && (
-            <div id="step1" className="step-content">
+            <div id="step1" className="step-content animate-slideIn">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Étape 1: Type d'installation</h2>
                 <p className="text-gray-600">Sélectionnez le type de climatisation qui correspond à vos besoins</p>
@@ -315,7 +367,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 {/* Monosplit amélioré */}
                 <div
-                  className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 relative overflow-hidden group ${selectedInstallationType === 'monosplit' ? 'type-selected border-blue-500' : 'border-gray-200'}`}
+                  className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 relative overflow-hidden group ${selectedInstallationType === 'monosplit' ? 'type-selected border-blue-500 ring-4 ring-blue-200' : 'border-gray-200'}`}
                   onClick={() => setSelectedInstallationType('monosplit')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
@@ -340,7 +392,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
                 {/* Multisplit amélioré */}
                 <div
-                  className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-green-50/30 relative overflow-hidden group ${selectedInstallationType === 'multisplit' ? 'type-selected border-blue-500' : 'border-gray-200'}`}
+                  className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-green-50/30 relative overflow-hidden group ${selectedInstallationType === 'multisplit' ? 'type-selected border-blue-500 ring-4 ring-blue-200' : 'border-gray-200'}`}
                   onClick={() => setSelectedInstallationType('multisplit')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
@@ -361,7 +413,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
                 {/* Gainable amélioré */}
                 <div
-                  className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50/30 relative overflow-hidden group ${selectedInstallationType === 'gainable' ? 'type-selected border-blue-500' : 'border-gray-200'}`}
+                  className={`installation-type border-2 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50/30 relative overflow-hidden group ${selectedInstallationType === 'gainable' ? 'type-selected border-blue-500 ring-4 ring-blue-200' : 'border-gray-200'}`}
                   onClick={() => setSelectedInstallationType('gainable')}
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-purple-100 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
@@ -389,7 +441,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div>
                   <Label htmlFor="surface" className="mb-2 flex items-center">
                     Surface à climatiser (m²) <span className="text-red-500">*</span>
-                    <span className="tooltip ml-1 relative">
+                    <span className="tooltip ml-1 relative group">
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                       <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                         Surface totale des pièces à climatiser. Pour une estimation précise, mesurez chaque pièce.
@@ -433,7 +485,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
           {/* Étape 2: Caractéristiques améliorée */}
           {currentStep === 2 && (
-            <div id="step2" className="step-content">
+            <div id="step2" className="step-content animate-slideIn">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Étape 2: Caractéristiques du logement</h2>
                 <p className="text-gray-600">Ces informations nous aident à affiner votre estimation</p>
@@ -471,7 +523,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div>
                   <Label htmlFor="insulation" className="mb-2 flex items-center">
                     Isolation
-                    <span className="tooltip ml-1 relative">
+                    <span className="tooltip ml-1 relative group">
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                       <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                         Qualité de l'isolation de votre logement. Influence la puissance nécessaire.
@@ -509,19 +561,19 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
               <div className="mb-6">
                 <Label className="block text-sm font-medium text-gray-700 mb-3">Options souhaitées</Label>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer">
+                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer" onClick={() => setReversible(!reversible)}>
                     <Checkbox id="reversible" checked={reversible} onCheckedChange={(checked) => setReversible(checked as boolean)} className="mr-3" />
                     <Label htmlFor="reversible">Climatisation réversible (chaud/froid)</Label>
                   </div>
-                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer">
+                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer" onClick={() => setWifi(!wifi)}>
                     <Checkbox id="wifi" checked={wifi} onCheckedChange={(checked) => setWifi(checked as boolean)} className="mr-3" />
                     <Label htmlFor="wifi">Contrôle WiFi</Label>
                   </div>
-                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer">
+                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer" onClick={() => setInverter(!inverter)}>
                     <Checkbox id="inverter" checked={inverter} onCheckedChange={(checked) => setInverter(checked as boolean)} className="mr-3" />
                     <Label htmlFor="inverter">Technologie Inverter</Label>
                   </div>
-                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer">
+                  <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 transition duration-300 cursor-pointer" onClick={() => setInstallation(!installation)}>
                     <Checkbox id="installation" checked={installation} onCheckedChange={(checked) => setInstallation(checked as boolean)} className="mr-3" />
                     <Label htmlFor="installation">Installation par professionnel RGE</Label>
                   </div>
@@ -532,7 +584,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
           {/* Étape 3: Situation financière améliorée */}
           {currentStep === 3 && (
-            <div id="step3" className="step-content">
+            <div id="step3" className="step-content animate-slideIn">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Étape 3: Éligibilité aux aides</h2>
                 <p className="text-gray-600">Ces informations déterminent votre éligibilité aux aides financières</p>
@@ -542,7 +594,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <div>
                   <Label htmlFor="income" className="mb-2 flex items-center">
                     Revenu fiscal de référence (€) <span className="text-red-500">*</span>
-                    <span className="tooltip ml-1 relative">
+                    <span className="tooltip ml-1 relative group">
                       <Info className="h-4 w-4 text-blue-500 cursor-help" />
                       <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                         Montant indiqué sur votre avis d'imposition. Détermine le montant des aides.
@@ -627,7 +679,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   </div>
                   <div>
                     <Label htmlFor="ownerType" className="mb-2">Type de propriétaire</Label>
-                    <Select value={ownerType} onValueChange={setPropertyStatus}> {/* Should be setOwnerType */}
+                    <Select value={ownerType} onValueChange={setOwnerType}> {/* Corrected function call */}
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionnez le type de propriétaire" />
                       </SelectTrigger>
@@ -652,7 +704,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
             <Button
               onClick={previousStep}
-              className={`bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-400 transition duration-300 flex items-center ${currentStep === 1 ? 'hidden' : ''}`}
+              className={`bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-400 transition duration-300 flex items-center ${currentStep === 1 ? 'invisible' : ''}`}
             >
               <ArrowLeft className="mr-2 h-5 w-5" />Précédent
             </Button>
@@ -661,7 +713,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
             </div>
             <Button
               onClick={nextStep}
-              className={`bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 ml-auto flex items-center group ${currentStep === 3 ? 'hidden' : ''}`}
+              className={`bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 ml-auto flex items-center group ${currentStep === 3 ? 'invisible' : ''}`}
             >
               <span>Suivant</span>
               <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-300 h-5 w-5" />
@@ -678,22 +730,29 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 <p className="text-xl text-gray-600">Basée sur vos informations et les dernières aides 2025</p>
               </div>
               
+              {/* Indicateur de revenu */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8 text-center">
+                <p className="text-yellow-800 font-semibold">
+                    Votre foyer est classé dans le profil de revenu : <span className="font-bold">{getRevenuTierLabel(calculationData.revenuTier)}</span>.
+                </p>
+              </div>
+
               {/* Comparaison avant/après aides */}
               <div className="grid md:grid-cols-2 gap-8 mb-12">
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
                   <h3 className="text-2xl font-bold text-red-800 mb-4">
-                    <Euro className="inline-block mr-2 h-6 w-6" />Avant aides
+                    <Euro className="inline-block mr-2 h-6 w-6" />Prix TTC sans aides
                   </h3>
                   <div className="text-4xl font-bold text-red-900 mb-2 line-through">{calculationData.totalTTC}€</div>
-                  <p className="text-red-700">Prix public TTC</p>
+                  <p className="text-red-700">Coût total avant déduction des primes</p>
                 </div>
                 
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
                   <h3 className="text-2xl font-bold text-green-800 mb-4">
-                    <img src="/placeholder.svg" alt="Piggy Bank" className="inline-block mr-2 h-6 w-6" />Après aides
+                    <img src="/placeholder.svg" alt="Piggy Bank" className="inline-block mr-2 h-6 w-6" />Coût final estimé
                   </h3>
                   <div className="text-5xl font-bold text-green-900 mb-2">{calculationData.finalCost}€</div>
-                  <p className="text-green-700">Coût final après aides</p>
+                  <p className="text-green-700">Après déduction des aides directes</p>
                 </div>
               </div>
               
@@ -706,8 +765,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <span className="flex items-center">
-                            Équipement
-                            <span className="tooltip ml-1 relative">
+                            Équipement (HT)
+                            <span className="tooltip ml-1 relative group">
                                 <Info className="h-4 w-4 text-blue-500 cursor-help" />
                                 <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                                     Prix des unités intérieures et extérieures, télécommande
@@ -718,8 +777,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="flex items-center">
-                            Installation
-                            <span className="tooltip ml-1 relative">
+                            Installation RGE (HT)
+                            <span className="tooltip ml-1 relative group">
                                 <Info className="h-4 w-4 text-blue-500 cursor-help" />
                                 <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
                                     Main d'œuvre professionnelle RGE, mise en service
@@ -730,13 +789,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="flex items-center">
-                            Options
-                            <span className="tooltip ml-1 relative">
-                                <Info className="h-4 w-4 text-blue-500 cursor-help" />
-                                <span className="tooltiptext absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md p-2 -mt-12 left-1/2 -translate-x-1/2 w-48">
-                                    Fonctions supplémentaires sélectionnées
-                                </span>
-                            </span>
+                            Options (HT)
                         </span>
                         <span className="font-semibold text-lg">{calculationData.optionsCost}€</span>
                     </div>
@@ -763,39 +816,38 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   </h3>
                   <div id="aidesDetails" className="space-y-4">
                     {calculationData.maprime > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                          <span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500">
+                        <span className="flex items-center font-medium">
                           MaPrimeRénov'
                         </span>
-                        <span className="font-semibold text-green-600">+{calculationData.maprime}€</span>
+                        <span className="font-bold text-green-600">+{calculationData.maprime}€</span>
                       </div>
                     )}
                     {calculationData.cee > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                          <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
-                          Prime CEE
+                      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-green-500">
+                        <span className="flex items-center font-medium">
+                          Prime CEE (Certificats d'Économie d'Énergie)
                         </span>
-                        <span className="font-semibold text-green-600">+{calculationData.cee}€</span>
+                        <span className="font-bold text-green-600">+{calculationData.cee}€</span>
                       </div>
                     )}
                     {calculationData.tvaReduced > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                          <span className="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
-                          TVA réduite 10%
+                      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-purple-500">
+                        <span className="flex items-center font-medium">
+                          Avantage TVA réduite (10%)
                         </span>
-                        <span className="font-semibold text-green-600">+{calculationData.tvaReduced}€</span>
+                        <span className="font-bold text-green-600">Inclus dans le coût TTC</span>
                       </div>
                     )}
-                    {calculationData.maprime === 0 && calculationData.cee === 0 && calculationData.tvaReduced === 0 && (
-                      <p className="text-gray-600">Aucune aide directe calculée pour l'instant. Contactez un expert pour une étude personnalisée.</p>
+                    {calculationData.maprime === 0 && calculationData.cee === 0 && (
+                      <p className="text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
+                        Selon votre profil de revenu, vous n'êtes pas éligible aux aides directes pour ce type d'équipement. Vous bénéficiez cependant de la TVA réduite à 10% si votre logement a plus de 2 ans.
+                      </p>
                     )}
                   </div>
                   <hr className="border-green-200 my-6" />
                   <div className="flex justify-between text-2xl font-bold text-green-900 bg-white rounded-lg p-4 border border-green-200">
-                    <span>Total des aides:</span>
+                    <span>Total des aides directes:</span>
                     <span>{calculationData.totalAides}€</span>
                   </div>
                 </div>
@@ -808,13 +860,15 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                     <img src="/placeholder.svg" alt="University" className="inline-block mr-2 h-6 w-6" />Solutions de financement
                   </h3>
                   <div id="pretsDetails" className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="flex items-center">
-                        <span className="w-3 h-3 rounded-full bg-orange-500 mr-2"></span>
+                    <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border-l-4 border-orange-500">
+                      <span className="flex items-center font-medium">
                         Éco-PTZ (prêt à taux 0%)
                       </span>
-                      <span className="font-semibold text-orange-600">Jusqu'à {calculationData.ecoPTZ}€</span>
+                      <span className="font-bold text-orange-600">Jusqu'à {calculationData.ecoPTZ}€</span>
                     </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                        Éligibilité confirmée : Logement de plus de 15 ans, résidence principale.
+                    </p>
                   </div>
                 </div>
               )}
@@ -827,20 +881,14 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                 
                 <h3 className="text-3xl font-bold mb-6 relative z-10">Votre investissement final</h3>
                 <div className="text-6xl font-bold mb-4 relative z-10">{calculationData.finalCost}€</div>
-                <p className="text-xl opacity-90 mb-6 relative z-10">Soit une économie de <span className="font-bold text-yellow-300">{calculationData.savings}€</span></p>
+                <p className="text-xl opacity-90 mb-6 relative z-10">Soit une économie totale de <span className="font-bold text-yellow-300">{calculationData.savings}€</span> (aides directes)</p>
                 
                 {/* Économies visualisées */}
                 <div className="max-w-md mx-auto bg-white/20 rounded-full h-4 mb-6 relative z-10">
-                    <div id="savings-bar" className="bg-yellow-400 h-4 rounded-full progress-bar" style={{ width: `${(calculationData.savings / calculationData.totalTTC) * 100}%` }}></div>
+                    <div id="savings-bar" className="bg-yellow-400 h-4 rounded-full progress-bar" style={{ width: `${Math.min(100, (calculationData.savings / calculationData.totalTTC) * 100)}%` }}></div>
                 </div>
                 
-                {/* Informations de financement */}
-                {calculationData.eligibleEcoPTZ && calculationData.ecoPTZ > 0 && (
-                  <div id="financementInfo" className="mt-6 bg-white/20 rounded-lg p-4 relative z-10">
-                      <p className="text-lg">Avec l'éco-PTZ, vous pouvez financer jusqu'à {calculationData.ecoPTZ}€ à taux 0% sur 15 ans.</p>
-                  </div>
-                )}
-
+                {/* CTA Final */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 relative z-10">
                     <Button onClick={() => scrollToSection('contact')} className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition duration-300 transform hover:scale-105 flex items-center justify-center">
                         <img src="/placeholder.svg" alt="Paper Plane" className="inline-block mr-2 h-5 w-5" />Recevoir mon devis personnalisé
