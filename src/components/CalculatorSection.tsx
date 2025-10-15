@@ -280,6 +280,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
       savings: Math.round(savings),
       eligibleEcoPTZ: eligibleEcoPTZ,
       revenuTier: revenuTier,
+      baseTVA: baseTVA, // Include baseTVA here
     });
 
     scrollToSection('results');
@@ -679,7 +680,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                   </div>
                   <div>
                     <Label htmlFor="ownerType" className="mb-2">Type de propriétaire</Label>
-                    <Select value={ownerType} onValueChange={setOwnerType}> {/* Corrected function call */}
+                    <Select value={ownerType} onValueChange={setOwnerType}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Sélectionnez le type de propriétaire" />
                       </SelectTrigger>
@@ -799,7 +800,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
                         <span>{calculationData.totalCost}€</span>
                     </div>
                     <div className="flex justify-between text-lg text-blue-700">
-                        <span>TVA appliquée ({baseTVA * 100}%):</span>
+                        <span>TVA appliquée ({calculationData.baseTVA * 100}%):</span>
                         <span>{calculationData.vatCost}€</span>
                     </div>
                     <div className="flex justify-between text-2xl font-bold text-blue-900 bg-white rounded-lg p-4 mt-4 border border-blue-200">
