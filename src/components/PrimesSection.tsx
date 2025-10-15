@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Home, Leaf, Percent, University, MapPin, Ticket, Check, Euro, Gavel, Shield, FileText } from 'lucide-react';
+import { Home, Leaf, Percent, University, MapPin, Ticket, Check, Euro, Gavel, Shield, FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const PrimesSection = () => {
@@ -189,7 +189,3 @@ const PrimesSection = () => {
             </div>
         </div>
     </section>
-  );
-};
-
-export default PrimesSection;
