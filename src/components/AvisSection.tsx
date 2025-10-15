@@ -33,6 +33,9 @@ const videoTestimonials = [
         quote: "Grâce aux aides, nous avons économisé 3200€ sur notre installation multisplit. Le simulateur était ultra-précis !",
         rating: 5,
         color: "blue",
+        bgClass: "bg-blue-100 dark:bg-blue-900/50",
+        textClass: "text-blue-600",
+        gradientClass: "from-blue-600",
     },
     {
         name: "Sophie M.",
@@ -40,6 +43,9 @@ const videoTestimonials = [
         quote: "Installation effectuée en 1 journée seulement. L'équipe était professionnelle et le résultat parfait.",
         rating: 4.5,
         color: "green",
+        bgClass: "bg-green-100 dark:bg-green-900/50",
+        textClass: "text-green-600",
+        gradientClass: "from-green-600",
     },
 ];
 
@@ -72,8 +78,8 @@ const AvisSection = () => {
             {videoTestimonials.map((testimonial, index) => (
                 <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden dark:bg-gray-800">
                     <div className={`aspect-video bg-gray-200 relative`}>
-                        {/* Placeholder pour la vidéo */}
-                        <div className={`absolute inset-0 bg-gradient-to-r from-${testimonial.color}-600 to-purple-600 flex items-center justify-center cursor-pointer`}>
+                        {/* Utilisation de classes complètes pour le gradient */}
+                        <div className={`absolute inset-0 bg-gradient-to-r ${testimonial.gradientClass} to-purple-600 flex items-center justify-center cursor-pointer`}>
                             <Play className="text-white h-12 w-12" />
                         </div>
                         <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
@@ -82,8 +88,9 @@ const AvisSection = () => {
                     </div>
                     <div className="p-6">
                         <div className="flex items-center mb-4">
-                            <div className={`w-12 h-12 bg-${testimonial.color}-100 rounded-full flex items-center justify-center mr-4 dark:bg-${testimonial.color}-900`}>
-                                <User className={`text-${testimonial.color}-600`} />
+                            {/* Utilisation de classes complètes pour le fond et le texte */}
+                            <div className={`w-12 h-12 ${testimonial.bgClass} rounded-full flex items-center justify-center mr-4`}>
+                                <User className={`${testimonial.textClass}`} />
                             </div>
                             <div>
                                 <div className="font-semibold text-gray-800 dark:text-white">{testimonial.name}</div>
