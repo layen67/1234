@@ -15,14 +15,16 @@ import Footer from "@/components/Footer";
 import PrimesSection from "@/components/PrimesSection";
 import GuideSection from "@/components/GuideSection";
 import AvisSection from "@/components/AvisSection";
-import WhyChooseUsSection from "@/components/WhyChooseUsSection"; // New import
-
+import WhyChooseUsSection from "@/components/WhyChooseUsSection";
 
 const Index = () => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      // Utilisation d'un léger décalage pour les ancres sous le header fixe
+      const headerHeight = 64; // Hauteur approximative du header
+      const offset = element.offsetTop - headerHeight;
+      window.scrollTo({ top: offset, behavior: 'smooth' });
     }
   };
 
@@ -33,7 +35,7 @@ const Index = () => {
       <HeroSection scrollToSection={scrollToSection} />
       <BenefitsSection />
       <CalculatorSection scrollToSection={scrollToSection} />
-      <WhyChooseUsSection /> {/* Nouvelle section */}
+      <WhyChooseUsSection />
       <GuideSection />
       <AvisSection />
       <PrimesSection />

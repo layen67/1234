@@ -10,7 +10,9 @@ const Header = () => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      // Ajout d'un décalage pour le header fixe (Header + PromoBanner)
+      const offset = element.offsetTop - 80; 
+      window.scrollTo({ top: offset, behavior: 'smooth' });
       setIsMobileMenuOpen(false); // Close menu on navigation
     }
   };
@@ -19,7 +21,7 @@ const Header = () => {
     <nav className="bg-white shadow-lg fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
+          <div className="flex items-center cursor-pointer" onClick={() => scrollToSection('top')}>
             <Snowflake className="text-blue-600 text-2xl mr-2" />
             <span className="text-xl font-bold text-gray-800">Climatiseur.pro</span>
             <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full hidden md:inline">Certifié RGE</span>

@@ -10,7 +10,8 @@ const Footer = () => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const offset = element.offsetTop - 80; 
+      window.scrollTo({ top: offset, behavior: 'smooth' });
     }
   };
   

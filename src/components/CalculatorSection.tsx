@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck, PiggyBank, Gift, University, Download, Send, CheckCircle, Percentage } from 'lucide-react';
+import { Info, Home, Building, Wind, ArrowLeft, ArrowRight, Calculator, Check, Euro, ShieldCheck, PiggyBank, Gift, University, Download, Send, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Mapping des départements pour affichage lisible
@@ -85,11 +85,10 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
 
   useEffect(() => {
     // Scroll to the calculator section when the step changes
-    const element = document.getElementById('calculateur');
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+    if (currentStep > 1) {
+        scrollToSection('calculateur');
     }
-  }, [currentStep]);
+  }, [currentStep, scrollToSection]);
 
   const validateStep = (step: number): boolean => {
     let isValid = true;
@@ -163,6 +162,8 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
   };
 
   const calculateEstimate = () => {
+    if (!validateStep(3)) return;
+
     const parsedSurface = typeof surface === 'number' ? surface : parseInt(surface as string);
     const parsedIncome = typeof income === 'number' ? income : parseInt(income as string);
     const parsedHouseholdSize = parseInt(householdSize);
@@ -173,7 +174,7 @@ const CalculatorSection: React.FC<CalculatorSectionProps> = ({ scrollToSection }
     let optionsCost = 0;
     let baseTVA = 0.20; // Default 20% TVA
 
-    // 1. Base costs based on installation type and surface (using logic from static code)
+    // 1. Base costs based on installation type and surface
     const roomsCount = parseInt(rooms);
     
     switch(selectedInstallationType) {

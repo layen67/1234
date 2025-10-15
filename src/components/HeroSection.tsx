@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, CheckCircle, Lock, Clock, UserCheck, Bolt, Snowflake, Euro, Star } from 'lucide-react';
+import { ShieldCheck, CheckCircle, Lock, Clock, UserCheck, Bolt, Star } from 'lucide-react';
 
 interface HeroSectionProps {
   scrollToSection: (id: string) => void;
@@ -35,7 +35,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ scrollToSection }) => {
   }, []);
 
   return (
-    <section className="hero-gradient text-white pt-20 pb-12">
+    <section id="top" className="hero-gradient text-white pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
           {/* Badge de confiance */}
